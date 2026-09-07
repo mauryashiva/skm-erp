@@ -20,9 +20,9 @@ interface NavItem {
   matchPrefix?: string;
 }
 
-// Clean main sections ONLY under WORK: Masters and Parameters
-// Individual forms (like Pincode) are discovered inside the Parameters page, NOT in the sidebar.
-const WORK_NAV_ITEMS: NavItem[] = [
+// Sidebar navigation: ONLY Masters and Parameters.
+// Forms like Pincode are accessed strictly inside the Parameters page.
+const NAV_ITEMS: NavItem[] = [
   {
     title: 'Masters',
     href: '/masters',
@@ -41,6 +41,14 @@ export function Sidebar() {
   const pathname = usePathname();
   const { isCollapsed, isMobileOpen, setMobileOpen } = useSidebarStore();
   const { activeDivision, isHoActive } = useErpContextStore();
+  const [isMounted, setIsMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const currentDivision = isMounted ? activeDivision : null;
+  const currentIsHoActive = isMounted ? isHoActive : false;
 
   return (
     <>
@@ -66,17 +74,17 @@ export function Sidebar() {
             <div className="flex items-center gap-2">
               <div
                 className={`p-1.5 rounded-lg shrink-0 ${
-                  isHoActive ? 'bg-indigo-500/15 text-indigo-500' : 'bg-primary/15 text-primary'
+                  currentIsHoActive ? 'bg-indigo-500/15 text-indigo-500' : 'bg-primary/15 text-primary'
                 }`}
               >
                 <Building2 className="w-4 h-4" />
               </div>
               <div className="truncate">
                 <span className="text-xs font-bold text-foreground truncate block">
-                  {activeDivision?.name || 'SKM STEELS LIMITED (HO)'}
+                  {currentDivision?.name || 'SKM STEELS LIMITED (HO)'}
                 </span>
                 <span className="text-[10px] text-muted-foreground block">
-                  {isHoActive ? 'Controlling Head Office' : 'Operating Division'}
+                  {currentIsHoActive ? 'Controlling Head Office' : 'Operating Division'}
                 </span>
               </div>
             </div>
@@ -85,59 +93,57 @@ export function Sidebar() {
           <div className="py-2 flex justify-center border-b border-border/50">
             <div
               className={`p-2 rounded-lg ${
-                isHoActive ? 'bg-indigo-500/15 text-indigo-500' : 'bg-primary/15 text-primary'
+                currentIsHoActive ? 'bg-indigo-500/15 text-indigo-500' : 'bg-primary/15 text-primary'
               }`}
-              title={activeDivision?.name}
+              title={currentDivision?.name}
             >
               <Building2 className="w-4 h-4" />
             </div>
           </div>
         )}
 
-        {/* Sidebar Nav: WORK -> Masters & Parameters ONLY */}
-        <nav className="flex-1 overflow-y-auto p-3 space-y-4">
-          <div className="space-y-1">
-            {!isCollapsed && (
-              <div className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80">
-                WORK
-              </div>
-            )}
-
-            <div className="space-y-1">
-              {WORK_NAV_ITEMS.map((item) => {
-                const isActive = item.matchPrefix
-                  ? pathname.startsWith(item.matchPrefix)
-                  : pathname === item.href;
-                const Icon = item.icon;
-
-                return (
-                  <Link
-                    key={item.title}
-                    href={item.href}
-                    onClick={() => setMobileOpen(false)}
-                    title={isCollapsed ? item.title : undefined}
-                    className={`group flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-semibold transition-all ${
-                      isActive
-                        ? 'bg-indigo-600 dark:bg-indigo-500 text-white shadow-md'
-                        : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
-                    } ${isCollapsed ? 'justify-center px-0' : ''}`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Icon
-                        className={`w-4 h-4 shrink-0 ${
-                          isActive ? 'text-white' : 'text-muted-foreground group-hover:text-foreground'
-                        }`}
-                      />
-                      {!isCollapsed && <span>{item.title}</span>}
-                    </div>
-
-                    {!isCollapsed && isActive && (
-                      <ChevronRight className="w-3.5 h-3.5 text-white/80" />
-                    )}
-                  </Link>
-                );
-              })}
+        {/* Sidebar Navigation: ONLY Masters and Parameters */}
+        <nav className="flex-1 overflow-y-auto p-3 space-y-2">
+          {!isCollapsed && (
+            <div className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80">
+              WORK
             </div>
+          )}
+
+          <div className="space-y-1">
+            {NAV_ITEMS.map((item) => {
+              const isActive = item.matchPrefix
+                ? pathname.startsWith(item.matchPrefix)
+                : pathname === item.href;
+              const Icon = item.icon;
+
+              return (
+                <Link
+                  key={item.title}
+                  href={item.href}
+                  onClick={() => setMobileOpen(false)}
+                  title={isCollapsed ? item.title : undefined}
+                  className={`group flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-semibold transition-all ${
+                    isActive
+                      ? 'bg-indigo-600 dark:bg-indigo-500 text-white shadow-md'
+                      : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                  } ${isCollapsed ? 'justify-center px-0' : ''}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Icon
+                      className={`w-4 h-4 shrink-0 ${
+                        isActive ? 'text-white' : 'text-muted-foreground group-hover:text-foreground'
+                      }`}
+                    />
+                    {!isCollapsed && <span>{item.title}</span>}
+                  </div>
+
+                  {!isCollapsed && isActive && (
+                    <ChevronRight className="w-3.5 h-3.5 text-white/80" />
+                  )}
+                </Link>
+              );
+            })}
           </div>
         </nav>
 

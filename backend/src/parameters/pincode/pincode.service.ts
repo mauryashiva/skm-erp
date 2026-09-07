@@ -43,6 +43,7 @@ type PincodeLocationFields = {
   countryCode?: string;
   area?: string;
   postOffice?: string;
+  assignedDivisionIds?: string[];
 };
 
 type CreatePincodeServiceDto =
@@ -564,6 +565,14 @@ export class PincodeService {
       );
     }
 
+    if (Array.isArray(dto.assignedDivisionIds)) {
+      await this.assignDivisions(
+        id,
+        dto.assignedDivisionIds,
+        user,
+      );
+    }
+
     return this.getPincodeById(
       id,
     );
@@ -592,6 +601,67 @@ export class PincodeService {
     return {
       message:
         'Pincode deactivated in Supabase database (Soft Deleted).',
+      id,
+    };
+  }
+
+  /**
+   * Activate a previously deactivated Pincode.
+   *
+   * Only HO should be permitted to call this operation.
+   * Preserves existing division assignments so assigned divisions regain access.
+   */
+  async activatePincode(
+    id: string,
+    user: AuthUser,
+  ): Promise<PincodeRecord> {
+    return this.updatePincode(
+      id,
+      {
+        isActive: true,
+      },
+      user,
+    );
+  }
+
+  /**
+   * Delete a Pincode master record.
+   *
+   * Only HO can delete a Parameter/Master record.
+   */
+  async deletePincode(
+    id: string,
+    user: AuthUser,
+  ): Promise<{
+    message: string;
+    id: string;
+  }> {
+    const supabase =
+      this.supabaseService.getClient();
+
+    // Verify existence first
+    await this.getPincodeById(id);
+
+    // Remove relationships and master record
+    await supabase
+      .from('pincode_divisions')
+      .delete()
+      .eq('pincode_id', id);
+
+    const { error } =
+      await supabase
+        .from('pincodes')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+      throw new BadRequestException(
+        `Failed to delete pincode: ${error.message}`,
+      );
+    }
+
+    return {
+      message: 'Pincode permanently deleted from database.',
       id,
     };
   }

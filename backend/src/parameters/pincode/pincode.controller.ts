@@ -57,7 +57,17 @@ export class PincodeController {
     return this.pincodeService.updatePincode(id, dto, user);
   }
 
-  @Delete(':id')
+  @Post(':id/activate')
+  @UseGuards(HoOnlyGuard)
+  @RequirePermissions('parameters.pincode.edit')
+  async activatePincode(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.pincodeService.activatePincode(id, user);
+  }
+
+  @Post(':id/deactivate')
   @UseGuards(HoOnlyGuard)
   @RequirePermissions('parameters.pincode.delete')
   async deactivatePincode(
@@ -65,6 +75,16 @@ export class PincodeController {
     @CurrentUser() user: AuthUser,
   ) {
     return this.pincodeService.deactivatePincode(id, user);
+  }
+
+  @Delete(':id')
+  @UseGuards(HoOnlyGuard)
+  @RequirePermissions('parameters.pincode.delete')
+  async deletePincode(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.pincodeService.deletePincode(id, user);
   }
 
   @Post(':id/assign')

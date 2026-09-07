@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
 import { AuthUser, DivisionInfo } from '../common/interfaces/auth-user.interface';
 
@@ -33,15 +33,44 @@ export const AUTHORITATIVE_DIVISIONS: Omit<DivisionInfo, 'id'>[] = [
 ];
 
 @Injectable()
-export class DivisionsService {
+export class DivisionsService implements OnModuleInit {
+  private readonly logger = new Logger(DivisionsService.name);
+
   constructor(private readonly supabaseService: SupabaseService) {}
+
+  async onModuleInit() {
+    await this.ensureDivisionsSeeded();
+  }
+
+  async ensureDivisionsSeeded() {
+    try {
+      const supabase = this.supabaseService.getClient();
+      const rows = AUTHORITATIVE_DIVISIONS.map((d, index) => ({
+        id: `10000000-0000-0000-0000-${index.toString().padStart(12, '0')}`,
+        name: d.name,
+        code: d.code,
+        is_ho: d.is_ho,
+      }));
+
+      const { error } = await supabase
+        .from('divisions')
+        .upsert(rows, { onConflict: 'id' });
+
+      if (error) {
+        this.logger.warn(`Could not seed divisions into Supabase: ${error.message}`);
+      } else {
+        this.logger.log('All 26 authoritative divisions successfully verified/seeded in Supabase database.');
+      }
+    } catch (err: any) {
+      this.logger.error(`Error in ensureDivisionsSeeded: ${err.message}`);
+    }
+  }
 
   async getAllDivisions(): Promise<DivisionInfo[]> {
     const supabase = this.supabaseService.getClient();
     const { data, error } = await supabase
       .from('divisions')
       .select('id, name, code, is_ho')
-      .eq('is_active', true)
       .order('is_ho', { ascending: false })
       .order('name', { ascending: true });
 

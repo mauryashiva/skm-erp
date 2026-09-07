@@ -17,19 +17,31 @@ CREATE TABLE IF NOT EXISTS public.divisions (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+ALTER TABLE public.divisions ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+
 -- 3. Central Pincodes Table (Real production table)
 CREATE TABLE IF NOT EXISTS public.pincodes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     pincode VARCHAR(20) NOT NULL,
     city VARCHAR(150) NOT NULL,
+    district VARCHAR(150),
     state VARCHAR(150) NOT NULL,
     country VARCHAR(100) NOT NULL DEFAULT 'India',
+    country_code VARCHAR(10) NOT NULL DEFAULT 'IN',
+    area VARCHAR(255),
+    post_office VARCHAR(255),
     is_active BOOLEAN NOT NULL DEFAULT true,
     deactivated_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT uq_pincode_location UNIQUE (pincode, city, state, country)
 );
+
+-- Ensure all columns exist if table was already created earlier
+ALTER TABLE public.pincodes ADD COLUMN IF NOT EXISTS district VARCHAR(150);
+ALTER TABLE public.pincodes ADD COLUMN IF NOT EXISTS country_code VARCHAR(10) DEFAULT 'IN';
+ALTER TABLE public.pincodes ADD COLUMN IF NOT EXISTS area VARCHAR(255);
+ALTER TABLE public.pincodes ADD COLUMN IF NOT EXISTS post_office VARCHAR(255);
 
 -- 4. Pincode Division Assignment Junction
 CREATE TABLE IF NOT EXISTS public.pincode_divisions (

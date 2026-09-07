@@ -7,9 +7,14 @@ import { FinancialYear } from '../../types';
 
 export function FinancialYearSelector() {
   const { activeFinancialYear, setActiveFinancialYear, availableFinancialYears } = useErpContextStore();
+  const [isMounted, setIsMounted] = React.useState(false);
   const [isOpen, setIsOpen] = React.useState(false);
   const [search, setSearch] = React.useState('');
   const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   React.useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -21,7 +26,10 @@ export function FinancialYearSelector() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const filteredFYs = availableFinancialYears.filter((fy) =>
+  const currentFY = isMounted ? activeFinancialYear : null;
+  const currentAvailableFYs = isMounted ? availableFinancialYears : [];
+
+  const filteredFYs = currentAvailableFYs.filter((fy) =>
     fy.code.toLowerCase().includes(search.toLowerCase()),
   );
 
@@ -44,9 +52,9 @@ export function FinancialYearSelector() {
         <div className="flex flex-col">
           <div className="flex items-center gap-1.5">
             <span className="text-xs font-semibold text-foreground">
-              {activeFinancialYear?.code || 'Select FY'}
+              {currentFY?.code || 'Select FY'}
             </span>
-            {activeFinancialYear?.isCurrent && (
+            {currentFY?.isCurrent && (
               <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold px-1.5 py-0.2 rounded-xs uppercase tracking-wider">
                 Current
               </span>
@@ -80,7 +88,7 @@ export function FinancialYearSelector() {
               </div>
             ) : (
               filteredFYs.map((fy) => {
-                const isSelected = activeFinancialYear?.id === fy.id;
+                const isSelected = currentFY?.id === fy.id;
                 return (
                   <button
                     key={fy.id}

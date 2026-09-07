@@ -16,6 +16,8 @@ import {
   XCircle,
   MapPin,
   Eye,
+  PowerOff,
+  RotateCcw,
 } from 'lucide-react';
 import { PincodeModal } from './pincode-modal';
 import { PincodeAssignModal } from './pincode-assign-modal';
@@ -87,6 +89,21 @@ export function PincodeTable({
     setAssignModalOpen(true);
   };
 
+  const handleActivate = async (record: PincodeRecord) => {
+    if (!canEdit) {
+      toast.error('Unauthorized: Activation requires HO control permissions.');
+      return;
+    }
+
+    try {
+      await api.post(`/parameters/pincodes/${record.id}/activate`);
+      toast.success(`Pincode ${record.pincode} activated.`);
+      onRefresh();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to activate pincode');
+    }
+  };
+
   const handleDeactivate = async (record: PincodeRecord) => {
     if (!canDelete) {
       toast.error('Unauthorized: Deactivation requires HO control permissions.');
@@ -95,7 +112,30 @@ export function PincodeTable({
 
     if (
       !confirm(
-        `Are you sure you want to deactivate Pincode ${record.pincode} (${record.city})?\n\nThis will soft-delete the record in the database.`,
+        `Are you sure you want to deactivate Pincode ${record.pincode} (${record.city})?\n\nThis will soft-deactivate the record in the database. Child divisions will no longer see it.`,
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await api.post(`/parameters/pincodes/${record.id}/deactivate`);
+      toast.success(`Pincode ${record.pincode} deactivated.`);
+      onRefresh();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to deactivate pincode');
+    }
+  };
+
+  const handleDelete = async (record: PincodeRecord) => {
+    if (!canDelete) {
+      toast.error('Unauthorized: Permanent deletion requires HO control permissions.');
+      return;
+    }
+
+    if (
+      !confirm(
+        `PERMANENT DELETE WARNING:\n\nAre you sure you want to permanently delete Pincode ${record.pincode} (${record.city})?\n\nThis will remove the master record and all division assignments from the database. This action cannot be undone!`,
       )
     ) {
       return;
@@ -103,10 +143,10 @@ export function PincodeTable({
 
     try {
       await api.delete(`/parameters/pincodes/${record.id}`);
-      toast.success(`Pincode ${record.pincode} deactivated.`);
+      toast.success(`Pincode ${record.pincode} permanently deleted.`);
       onRefresh();
     } catch (err: any) {
-      toast.error(err.message || 'Failed to deactivate pincode');
+      toast.error(err.message || 'Failed to delete pincode');
     }
   };
 
@@ -302,8 +342,26 @@ export function PincodeTable({
                         {canDelete && record.isActive && (
                           <button
                             onClick={() => handleDeactivate(record)}
+                            className="p-1.5 rounded-lg hover:bg-amber-500/10 text-muted-foreground hover:text-amber-600 transition-colors cursor-pointer"
+                            title="Deactivate Record (Soft Delete)"
+                          >
+                            <PowerOff className="w-4 h-4" />
+                          </button>
+                        )}
+                        {canEdit && !record.isActive && (
+                          <button
+                            onClick={() => handleActivate(record)}
+                            className="p-1.5 rounded-lg hover:bg-emerald-500/10 text-muted-foreground hover:text-emerald-600 transition-colors cursor-pointer"
+                            title="Activate Record"
+                          >
+                            <RotateCcw className="w-4 h-4" />
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button
+                            onClick={() => handleDelete(record)}
                             className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
-                            title="Deactivate Record"
+                            title="Permanently Delete Record"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -325,6 +383,7 @@ export function PincodeTable({
         onSuccess={onRefresh}
         initialData={selectedRecord}
         allDivisions={allDivisions}
+        readOnly={!canEdit && !!selectedRecord}
       />
 
       {/* Division Assignment Modal */}

@@ -33,6 +33,7 @@ interface PincodeModalProps {
   onSuccess: () => void;
   initialData?: PincodeRecord | null;
   allDivisions: Division[];
+  readOnly?: boolean;
 }
 
 /* =========================================================
@@ -311,11 +312,13 @@ export function PincodeModal({
   onSuccess,
   initialData,
   allDivisions,
+  readOnly = false,
 }: PincodeModalProps) {
-  const { activeDivision } =
+  const { activeDivision, isHoActive } =
     useErpContextStore();
 
   const isEditing = !!initialData;
+  const effectiveReadOnly = readOnly || (!isHoActive && !!initialData);
 
   const [pincode, setPincode] =
     React.useState('');
@@ -975,6 +978,9 @@ export function PincodeModal({
   const toggleDivision = (
     divId: string,
   ) => {
+    if (effectiveReadOnly) {
+      return;
+    }
     const division =
       allDivisions.find(
         (item) =>
@@ -1151,6 +1157,9 @@ export function PincodeModal({
 
             countryCode:
               payload.countryCode,
+
+            assignedDivisionIds:
+              payload.assignedDivisionIds,
           },
         );
 
@@ -1193,7 +1202,9 @@ export function PincodeModal({
       isOpen={isOpen}
       onClose={onClose}
       title={
-        isEditing
+        effectiveReadOnly
+          ? 'View Authoritative Pincode'
+          : isEditing
           ? 'Edit Authoritative Pincode'
           : 'Create Centrally Controlled Pincode'
       }
@@ -1231,7 +1242,7 @@ export function PincodeModal({
                 )
               }
               disabled={
-                isEditing
+                isEditing || effectiveReadOnly
               }
               className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-input bg-card text-foreground focus:ring-2 focus:ring-primary focus:outline-hidden"
             >
@@ -1291,7 +1302,7 @@ export function PincodeModal({
               currentCountry.placeholder
             }
             disabled={
-              isEditing
+              isEditing || effectiveReadOnly
             }
             required
           />
@@ -1335,6 +1346,7 @@ export function PincodeModal({
                 )
               }
               placeholder="Auto-detected from postal code"
+              disabled={effectiveReadOnly || isSaving}
               required
             />
           </div>
@@ -1362,6 +1374,7 @@ export function PincodeModal({
                 )
               }
               placeholder="Auto-detected from postal code"
+              disabled={effectiveReadOnly || isSaving}
               required
             />
           </div>
@@ -1394,6 +1407,7 @@ export function PincodeModal({
                 )
               }
               placeholder="Auto-detected when available"
+              disabled={effectiveReadOnly || isSaving}
             />
           </div>
 
@@ -1417,6 +1431,7 @@ export function PincodeModal({
                 )
               }
               placeholder="Auto-detected when reliable data is available"
+              disabled={effectiveReadOnly || isSaving}
             />
           </div>
         </div>
@@ -1440,7 +1455,7 @@ export function PincodeModal({
                   postOfficeOptions
                 }
                 disabled={
-                  isLookingUp
+                  isLookingUp || effectiveReadOnly || isSaving
                 }
                 onChange={(
                   value,
@@ -1464,77 +1479,75 @@ export function PincodeModal({
             ASSIGN TO DIVISIONS
             ===================================================== */}
 
-        {!isEditing && (
-          <div className="mt-4 pt-3 border-t border-border">
-            <div className="flex items-center justify-between mb-2">
-              <div>
-                <span className="text-xs font-semibold text-foreground">
-                  COPY TO / ASSIGN TO DIVISIONS
-                </span>
-
-                <p className="text-[11px] text-muted-foreground">
-                  Child divisions only see and use records assigned by HO.
-                </p>
-              </div>
-
-              <span className="text-xs font-bold text-primary">
-                {
-                  selectedDivisions.length
-                }{' '}
-                Selected
+        <div className="mt-4 pt-3 border-t border-border">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <span className="text-xs font-semibold text-foreground">
+                COPY TO / ASSIGN TO DIVISIONS
               </span>
+
+              <p className="text-[11px] text-muted-foreground">
+                Child divisions only see and use records assigned by HO.
+              </p>
             </div>
 
-            <div className="max-h-40 overflow-y-auto border border-border rounded-lg p-2 space-y-1 bg-secondary/30">
-              {allDivisions.map(
-                (
-                  division,
-                ) => {
-                  const isSelected =
-                    selectedDivisions.includes(
-                      division.id,
-                    );
-
-                  return (
-                    <button
-                      type="button"
-                      key={
-                        division.id
-                      }
-                      onClick={() =>
-                        toggleDivision(
-                          division.id,
-                        )
-                      }
-                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs transition-colors text-left ${isSelected
-                        ? 'bg-primary/10 text-primary font-medium'
-                        : 'hover:bg-secondary text-foreground'
-                        }`}
-                    >
-                      <span className="truncate">
-                        {
-                          division.name
-                        }
-                      </span>
-
-                      <div className="flex items-center gap-1 shrink-0">
-                        {division.is_ho && (
-                          <span className="text-[9px] bg-indigo-500/15 text-indigo-600 font-bold px-1 rounded-xs uppercase">
-                            HO Locked
-                          </span>
-                        )}
-
-                        {isSelected && (
-                          <Check className="w-3.5 h-3.5" />
-                        )}
-                      </div>
-                    </button>
-                  );
-                },
-              )}
-            </div>
+            <span className="text-xs font-bold text-primary">
+              {
+                selectedDivisions.length
+              }{' '}
+              Selected
+            </span>
           </div>
-        )}
+
+          <div className="max-h-40 overflow-y-auto border border-border rounded-lg p-2 space-y-1 bg-secondary/30">
+            {allDivisions.map(
+              (
+                division,
+              ) => {
+                const isSelected =
+                  selectedDivisions.includes(
+                    division.id,
+                  );
+
+                return (
+                  <button
+                    type="button"
+                    key={
+                      division.id
+                    }
+                    onClick={() =>
+                      toggleDivision(
+                        division.id,
+                      )
+                    }
+                    className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs transition-colors text-left ${isSelected
+                      ? 'bg-primary/10 text-primary font-medium'
+                      : 'hover:bg-secondary text-foreground'
+                      }`}
+                  >
+                    <span className="truncate">
+                      {
+                        division.name
+                      }
+                    </span>
+
+                    <div className="flex items-center gap-1 shrink-0">
+                      {division.is_ho && (
+                        <span className="text-[9px] bg-indigo-500/15 text-indigo-600 font-bold px-1 rounded-xs uppercase">
+                          HO Locked
+                        </span>
+                      )}
+
+                      {isSelected && (
+                        <Check className="w-3.5 h-3.5" />
+                      )}
+                    </div>
+                  </button>
+                );
+              },
+            )}
+          </div>
+        </div>
 
         {/* =====================================================
             ACTIONS
@@ -1551,19 +1564,21 @@ export function PincodeModal({
               isSaving
             }
           >
-            Cancel
+            {effectiveReadOnly ? 'Close' : 'Cancel'}
           </Button>
 
-          <Button
-            type="submit"
-            isLoading={
-              isSaving
-            }
-          >
-            {isEditing
-              ? 'Save Changes'
-              : 'Create & Assign Pincode'}
-          </Button>
+          {!effectiveReadOnly && (
+            <Button
+              type="submit"
+              isLoading={
+                isSaving
+              }
+            >
+              {isEditing
+                ? 'Save Changes'
+                : 'Create & Assign Pincode'}
+            </Button>
+          )}
         </div>
       </form>
     </Modal>
