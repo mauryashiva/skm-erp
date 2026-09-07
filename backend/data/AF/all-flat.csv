@@ -1,0 +1,36 @@
+# Data from Open Admin Data (https://openadmindata.org/af/) — CC-BY-4.0. Please cite: https://github.com/open-admin-data/afghanistan-administrative-divisions
+id,level,level_name.local,level_name.en,name.local,name.en,name.slug,code.id,code.iso,parent.id,parent.name.local,parent.name.en,children_count.province,children_count.district,zip_codes,geo.lat,geo.lon,source_url
+AF01,1,ولایت,Province,کابل,Kabul,kabul-af01,AF01,,,,,,15,,34.555,69.335,https://openadmindata.org/af/provinces/kabul-af01/
+AF02,1,ولایت,Province,کاپیسا,Kapisa,kapisa-af02,AF02,,,,,,7,,34.963,69.623,https://openadmindata.org/af/provinces/kapisa-af02/
+AF03,1,ولایت,Province,پروان,Parwan,parwan-af03,AF03,,,,,,10,,34.958,68.886,https://openadmindata.org/af/provinces/parwan-af03/
+AF04,1,ولایت,Province,میدان وردک,Maidan Wardak,maidan-wardak-af04,AF04,,,,,,9,,34.303,68.218,https://openadmindata.org/af/provinces/maidan-wardak-af04/
+AF05,1,ولایت,Province,لوگر,Logar,logar-af05,AF05,,,,,,7,,34.013,69.168,https://openadmindata.org/af/provinces/logar-af05/
+AF06,1,ولایت,Province,ننگرهار,Nangarhar,nangarhar-af06,AF06,,,,,,22,,34.274,70.476,https://openadmindata.org/af/provinces/nangarhar-af06/
+AF07,1,ولایت,Province,لغمان,Laghman,laghman-af07,AF07,,,,,,5,,34.764,70.16,https://openadmindata.org/af/provinces/laghman-af07/
+AF08,1,ولایت,Province,پنجشیر,Panjsher,panjsher-af08,AF08,,,,,,7,,35.446,69.795,https://openadmindata.org/af/provinces/panjsher-af08/
+AF09,1,ولایت,Province,بغلان,Baghlan,baghlan-af09,AF09,,,,,,15,,35.804,68.914,https://openadmindata.org/af/provinces/baghlan-af09/
+AF10,1,ولایت,Province,بامیان,Bamyan,bamyan-af10,AF10,,,,,,7,,34.804,67.234,https://openadmindata.org/af/provinces/bamyan-af10/
+AF11,1,ولایت,Province,غزنی,Ghazni,ghazni-af11,AF11,,,,,,19,,33.316,67.811,https://openadmindata.org/af/provinces/ghazni-af11/
+AF12,1,ولایت,Province,پکتیکا,Paktika,paktika-af12,AF12,,,,,,19,,32.477,68.744,https://openadmindata.org/af/provinces/paktika-af12/
+AF13,1,ولایت,Province,پکتیا,Paktya,paktya-af13,AF13,,,,,,11,,33.632,69.388,https://openadmindata.org/af/provinces/paktya-af13/
+AF14,1,ولایت,Province,خوست,Khost,khost-af14,AF14,,,,,,13,,33.377,69.834,https://openadmindata.org/af/provinces/khost-af14/
+AF15,1,ولایت,Province,کنر ها,Kunar,kunar-af15,AF15,,,,,,15,,34.966,71.094,https://openadmindata.org/af/provinces/kunar-af15/
+AF16,1,ولایت,Province,نورستان,Nuristan,nuristan-af16,AF16,,,,,,8,,35.417,70.788,https://openadmindata.org/af/provinces/nuristan-af16/
+AF17,1,ولایت,Province,بدخشان,Badakhshan,badakhshan-af17,AF17,,,,,,28,,37.038,71.456,https://openadmindata.org/af/provinces/badakhshan-af17/
+AF18,1,ولایت,Province,تخار,Takhar,takhar-af18,AF18,,,,,,17,,36.702,69.779,https://openadmindata.org/af/provinces/takhar-af18/
+AF19,1,ولایت,Province,کندز,Kunduz,kunduz-af19,AF19,,,,,,7,,36.843,68.746,https://openadmindata.org/af/provinces/kunduz-af19/
+AF20,1,ولایت,Province,سمنگان,Samangan,samangan-af20,AF20,,,,,,8,,35.972,67.702,https://openadmindata.org/af/provinces/samangan-af20/
+AF21,1,ولایت,Province,بلخ,Balkh,balkh-af21,AF21,,,,,,15,,36.67,67.078,https://openadmindata.org/af/provinces/balkh-af21/
+AF22,1,ولایت,Province,سرپل,Sar-e-Pul,sar-e-pul-af22,AF22,,,,,,7,,35.714,66.139,https://openadmindata.org/af/provinces/sar-e-pul-af22/
+AF23,1,ولایت,Province,غور,Ghor,ghor-af23,AF23,,,,,,10,,34.179,64.929,https://openadmindata.org/af/provinces/ghor-af23/
+AF24,1,ولایت,Province,دایکندی,Daykundi,daykundi-af24,AF24,,,,,,9,,33.706,66.22,https://openadmindata.org/af/provinces/daykundi-af24/
+AF25,1,ولایت,Province,ارزگان,Uruzgan,uruzgan-af25,AF25,,,,,,7,,32.854,66.059,https://openadmindata.org/af/provinces/uruzgan-af25/
+AF26,1,ولایت,Province,زابل,Zabul,zabul-af26,AF26,,,,,,11,,32.2,67.148,https://openadmindata.org/af/provinces/zabul-af26/
+AF27,1,ولایت,Province,کندهار,Kandahar,kandahar-af27,AF27,,,,,,16,,31.045,65.71,https://openadmindata.org/af/provinces/kandahar-af27/
+AF28,1,ولایت,Province,جوزجان,Jawzjan,jawzjan-af28,AF28,,,,,,11,,36.829,65.854,https://openadmindata.org/af/provinces/jawzjan-af28/
+AF29,1,ولایت,Province,فاریاب,Faryab,faryab-af29,AF29,,,,,,14,,36.06,64.869,https://openadmindata.org/af/provinces/faryab-af29/
+AF30,1,ولایت,Province,هلمند,Hilmand,hilmand-af30,AF30,,,,,,13,,31.154,64.047,https://openadmindata.org/af/provinces/hilmand-af30/
+AF31,1,ولایت,Province,بادغیس,Badghis,badghis-af31,AF31,,,,,,7,,35.137,63.734,https://openadmindata.org/af/provinces/badghis-af31/
+AF32,1,ولایت,Province,هرات,Hirat,hirat-af32,AF32,,,,,,16,,34.197,62.131,https://openadmindata.org/af/provinces/hirat-af32/
+AF33,1,ولایت,Province,فراه,Farah,farah-af33,AF33,,,,,,11,,32.608,62.302,https://openadmindata.org/af/provinces/farah-af33/
+AF34,1,ولایت,Province,نیمروز,Nimroz,nimroz-af34,AF34,,,,,,5,,30.802,62.319,https://openadmindata.org/af/provinces/nimroz-af34/
