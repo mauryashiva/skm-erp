@@ -80,9 +80,7 @@ export class PincodeService {
     const supabase =
       this.supabaseService.getClient();
 
-    const isHO =
-      user.is_ho_active ||
-      user.is_super_admin;
+    const isHO = Boolean(user.is_ho_active);
 
     const activeDivId =
       user.active_division_id;
@@ -213,6 +211,10 @@ export class PincodeService {
      * Normal divisions can only see Pincodes
      * assigned to their active division.
      */
+    if (!activeDivId) {
+      return [];
+    }
+
     return records.filter(
       (record) =>
         record.assignedDivisions.some(
@@ -384,19 +386,6 @@ export class PincodeService {
         dto.assignedDivisionIds ||
         [],
       );
-
-    /*
-     * Existing behavior:
-     * Keep the current user's active division
-     * assigned when available.
-     */
-    if (
-      user.active_division_id
-    ) {
-      assignedIds.add(
-        user.active_division_id,
-      );
-    }
 
     /*
      * HO must always have access.

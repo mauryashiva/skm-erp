@@ -18,6 +18,11 @@ export default function PincodePage() {
   const [pincodes, setPincodes] = React.useState<PincodeRecord[]>([]);
   const [allDivisions, setAllDivisions] = React.useState<Division[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [isMounted, setIsMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Load authoritative divisions for HO assignment selection
   React.useEffect(() => {
@@ -60,10 +65,20 @@ export default function PincodePage() {
   });
 
   // Authorization checks based on HO control and role permissions
-  const canCreate = isHoActive && hasPermission('parameters.pincode.create');
-  const canEdit = isHoActive && hasPermission('parameters.pincode.edit');
-  const canDelete = isHoActive && hasPermission('parameters.pincode.delete');
-  const canAssign = isHoActive && hasPermission('parameters.pincode.assign');
+  const currentIsHoActive = isMounted ? isHoActive : true;
+  const currentDivisionName = isMounted
+    ? activeDivision?.name || 'SKM STEELS LIMITED (HO)'
+    : 'SKM STEELS LIMITED (HO)';
+  const currentViewLabel = isMounted
+    ? isHoActive
+      ? 'Authoritative Central Repository'
+      : 'Assigned Records View'
+    : 'Authoritative Central Repository';
+
+  const canCreate = currentIsHoActive && hasPermission('parameters.pincode.create');
+  const canEdit = currentIsHoActive && hasPermission('parameters.pincode.edit');
+  const canDelete = currentIsHoActive && hasPermission('parameters.pincode.delete');
+  const canAssign = currentIsHoActive && hasPermission('parameters.pincode.assign');
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
@@ -98,11 +113,11 @@ export default function PincodePage() {
         </div>
 
         <div className="text-xs text-muted-foreground sm:text-right">
-          <span className="font-semibold text-foreground">
-            {activeDivision?.name || 'SKM STEELS LIMITED (HO)'}
+          <span className="font-semibold text-foreground" suppressHydrationWarning>
+            {currentDivisionName}
           </span>
-          <span className="block text-[11px] text-muted-foreground">
-            {isHoActive ? 'Authoritative Central Repository' : 'Assigned Records View'}
+          <span className="block text-[11px] text-muted-foreground" suppressHydrationWarning>
+            {currentViewLabel}
           </span>
         </div>
       </div>
@@ -111,14 +126,14 @@ export default function PincodePage() {
       <PincodeTable
         pincodes={pincodes}
         allDivisions={allDivisions.length > 0 ? allDivisions : availableDivisions}
-        isHoActive={isHoActive}
+        isHoActive={currentIsHoActive}
         canCreate={canCreate}
         canEdit={canEdit}
         canDelete={canDelete}
         canAssign={canAssign}
         isLoading={isLoading}
         onRefresh={fetchPincodes}
-        activeDivisionName={activeDivision?.name || 'SKM STEELS LIMITED (HO)'}
+        activeDivisionName={currentDivisionName}
       />
     </div>
   );

@@ -16,7 +16,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="min-h-screen bg-background text-foreground antialiased selection:bg-primary/20">
+      <body className="min-h-screen bg-background text-foreground antialiased selection:bg-primary/20" suppressHydrationWarning>
         <ThemeProvider>
           <AppShell>{children}</AppShell>
           <Toaster position="top-right" richColors closeButton />

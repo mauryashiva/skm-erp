@@ -8,8 +8,13 @@ import { useRouter } from 'next/navigation';
 export function UserMenu() {
   const { user, logout } = useAuthStore();
   const [isOpen, setIsOpen] = React.useState(false);
+  const [isMounted, setIsMounted] = React.useState(false);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
   const router = useRouter();
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   React.useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -26,7 +31,7 @@ export function UserMenu() {
     router.push('/login');
   };
 
-  if (!user) {
+  if (!isMounted || !user) {
     return null;
   }
 

@@ -23,6 +23,7 @@ import { PincodeModal } from './pincode-modal';
 import { PincodeAssignModal } from './pincode-assign-modal';
 import { api } from '../../lib/api';
 import { toast } from 'sonner';
+import { useErpContextStore } from '../../stores/context-store';
 
 interface PincodeTableProps {
   pincodes: PincodeRecord[];
@@ -49,6 +50,7 @@ export function PincodeTable({
   onRefresh,
   activeDivisionName,
 }: PincodeTableProps) {
+  const { activeDivision } = useErpContextStore();
   const [search, setSearch] = React.useState('');
   const [activeOnly, setActiveOnly] = React.useState(false);
   const [modalOpen, setModalOpen] = React.useState(false);
@@ -57,6 +59,15 @@ export function PincodeTable({
 
   const filteredPincodes = pincodes.filter((p) => {
     if (activeOnly && !p.isActive) return false;
+
+    // Child divisions must ONLY see pincodes assigned to their active division
+    if (!isHoActive && activeDivision?.id) {
+      const isAssigned = p.assignedDivisions?.some(
+        (div) => div.id === activeDivision.id,
+      );
+      if (!isAssigned) return false;
+    }
+
     const q = search.toLowerCase();
     return (
       p.pincode.toLowerCase().includes(q) ||
@@ -227,8 +238,11 @@ export function PincodeTable({
                       <Building2 className="w-10 h-10 mx-auto text-muted-foreground/30" />
                       <h3 className="font-bold text-foreground text-sm">No Pincode Records</h3>
                       <p className="text-xs text-muted-foreground">
-                        No records have been created yet.
-                        {canCreate ? ' Click "+ Create Pincode" to add an authoritative record to Supabase.' : ''}
+                        {isHoActive
+                          ? canCreate
+                            ? 'No records have been created yet. Click "+ Create Pincode" to add an authoritative record.'
+                            : 'No records found.'
+                          : `No Pincode records are currently assigned to ${activeDivisionName}. Records assigned by SKM STEELS LIMITED (HO) will appear here automatically.`}
                       </p>
                     </div>
                   </td>
