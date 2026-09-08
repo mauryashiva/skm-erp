@@ -289,24 +289,27 @@ export function PincodeTable({
                       {record.country || '—'}
                     </td>
 
-                    {/* ASSIGNED DIVISIONS */}
+                    {/* ASSIGNED DIVISIONS — HO excluded from count (HO is controller, not assignee) */}
                     <td className="px-5 py-3.5">
-                      {canAssign ? (
-                        <button
-                          onClick={() => handleAssign(record)}
-                          className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-secondary hover:bg-muted border border-border text-[11px] font-medium transition-colors text-foreground cursor-pointer"
-                          title="Click to manage division assignments"
-                        >
-                          <Building2 className="w-3 h-3 text-indigo-500" />
-                          <span>{record.assignedDivisions?.length || 0} Divisions</span>
-                        </button>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-secondary/80 text-[11px] text-muted-foreground border border-border">
-                          {record.assignedDivisions?.some((d) => d.name === activeDivisionName)
-                            ? `Assigned to ${activeDivisionName}`
-                            : `${record.assignedDivisions?.length || 0} Divisions`}
-                        </span>
-                      )}
+                      {(() => {
+                        const childCount = (record.assignedDivisions || []).filter((d) => !d.isHo).length;
+                        return canAssign ? (
+                          <button
+                            onClick={() => handleAssign(record)}
+                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-secondary hover:bg-muted border border-border text-[11px] font-medium transition-colors text-foreground cursor-pointer"
+                            title="Click to manage division assignments"
+                          >
+                            <Building2 className="w-3 h-3 text-indigo-500" />
+                            <span>{childCount} {childCount === 1 ? 'Division' : 'Divisions'}</span>
+                          </button>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-secondary/80 text-[11px] text-muted-foreground border border-border">
+                            {record.assignedDivisions?.some((d) => d.name === activeDivisionName)
+                              ? `Assigned to ${activeDivisionName}`
+                              : `${childCount} ${childCount === 1 ? 'Division' : 'Divisions'}`}
+                          </span>
+                        );
+                      })()}
                     </td>
 
                     {/* STATUS */}

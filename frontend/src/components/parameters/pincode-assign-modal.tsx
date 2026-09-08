@@ -173,8 +173,11 @@ export function PincodeAssignModal({
 
         <div className="flex items-center justify-between pt-3 border-t border-border">
           <span className="text-xs text-muted-foreground">
-            <strong className="text-foreground">{selectedDivisions.length}</strong> of{' '}
-            {allDivisions.length} divisions assigned
+            <strong className="text-foreground">
+              {selectedDivisions.filter((id) => !allDivisions.find((d) => d.id === id)?.is_ho).length}
+            </strong>{' '}
+            of{' '}
+            {allDivisions.filter((d) => !d.is_ho).length} child divisions assigned
           </span>
 
           <div className="flex items-center gap-2">
