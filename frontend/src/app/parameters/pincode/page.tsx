@@ -75,10 +75,12 @@ export default function PincodePage() {
       : 'Assigned Records View'
     : 'Authoritative Central Repository';
 
-  const canCreate = currentIsHoActive && hasPermission('parameters.pincode.create');
-  const canEdit = currentIsHoActive && hasPermission('parameters.pincode.edit');
-  const canDelete = currentIsHoActive && hasPermission('parameters.pincode.delete');
-  const canAssign = currentIsHoActive && hasPermission('parameters.pincode.assign');
+  // Authorization checks — all default false until client is mounted so SSR
+  // and the first client paint match (avoids hydration mismatch from localStorage).
+  const canCreate = isMounted && currentIsHoActive && hasPermission('parameters.pincode.create');
+  const canEdit   = isMounted && currentIsHoActive && hasPermission('parameters.pincode.edit');
+  const canDelete = isMounted && currentIsHoActive && hasPermission('parameters.pincode.delete');
+  const canAssign = isMounted && currentIsHoActive && hasPermission('parameters.pincode.assign');
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
