@@ -1512,23 +1512,27 @@ export function PincodeModal({
 
             <div className="flex items-center gap-2">
               {/* Select / Unselect All */}
-              <button
-                type="button"
-                onClick={() => setSelectedDivisions(allDivisions.map((d) => d.id))}
-                className="text-[10px] font-medium text-primary hover:underline"
-                title="Select all divisions"
-              >
-                All
-              </button>
-              <span className="text-muted-foreground text-[10px]">/</span>
-              <button
-                type="button"
-                onClick={() => setSelectedDivisions([])}
-                className="text-[10px] font-medium text-muted-foreground hover:text-foreground hover:underline"
-                title="Unselect all divisions"
-              >
-                None
-              </button>
+              {!effectiveReadOnly && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedDivisions(allDivisions.map((d) => d.id))}
+                    className="text-[10px] font-medium text-primary hover:underline"
+                    title="Select all divisions"
+                  >
+                    All
+                  </button>
+                  <span className="text-muted-foreground text-[10px]">/</span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedDivisions([])}
+                    className="text-[10px] font-medium text-muted-foreground hover:text-foreground hover:underline"
+                    title="Unselect all divisions"
+                  >
+                    None
+                  </button>
+                </>
+              )}
 
               <span className="text-xs font-bold text-primary ml-1">
                 {selectedDivisions.filter(
@@ -1577,12 +1581,13 @@ export function PincodeModal({
                   <button
                     type="button"
                     key={division.id}
+                    disabled={effectiveReadOnly}
                     onClick={() => toggleDivision(division.id)}
                     className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs transition-colors text-left ${
                       isSelected
                         ? 'bg-primary/10 text-primary font-medium'
                         : 'hover:bg-secondary text-foreground'
-                    }`}
+                    } ${effectiveReadOnly ? 'cursor-default' : 'cursor-pointer'}`}
                   >
                     <span className="truncate">{division.name}</span>
 

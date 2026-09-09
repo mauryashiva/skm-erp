@@ -56,6 +56,7 @@ export function PincodeTable({
   const [modalOpen, setModalOpen] = React.useState(false);
   const [assignModalOpen, setAssignModalOpen] = React.useState(false);
   const [selectedRecord, setSelectedRecord] = React.useState<PincodeRecord | null>(null);
+  const [isViewOnly, setIsViewOnly] = React.useState(false);
 
   const filteredPincodes = pincodes.filter((p) => {
     if (activeOnly && !p.isActive) return false;
@@ -86,11 +87,19 @@ export function PincodeTable({
       return;
     }
     setSelectedRecord(null);
+    setIsViewOnly(false);
+    setModalOpen(true);
+  };
+
+  const handleView = (record: PincodeRecord) => {
+    setSelectedRecord(record);
+    setIsViewOnly(true);
     setModalOpen(true);
   };
 
   const handleEdit = (record: PincodeRecord) => {
     setSelectedRecord(record);
+    setIsViewOnly(false);
     setModalOpen(true);
   };
 
@@ -339,21 +348,20 @@ export function PincodeTable({
                             <Share2 className="w-4 h-4" />
                           </button>
                         )}
-                        {canEdit ? (
+                        <button
+                          onClick={() => handleView(record)}
+                          className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                          title="View Record Details"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        {canEdit && (
                           <button
                             onClick={() => handleEdit(record)}
                             className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                             title="Edit Record"
                           >
                             <Edit2 className="w-4 h-4" />
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleEdit(record)}
-                            className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                            title="View Record Details"
-                          >
-                            <Eye className="w-4 h-4" />
                           </button>
                         )}
                         {canDelete && record.isActive && (
@@ -396,11 +404,14 @@ export function PincodeTable({
       {/* Creation / Edit Modal */}
       <PincodeModal
         isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={() => {
+          setModalOpen(false);
+          setIsViewOnly(false);
+        }}
         onSuccess={onRefresh}
         initialData={selectedRecord}
         allDivisions={allDivisions}
-        readOnly={!canEdit && !!selectedRecord}
+        readOnly={isViewOnly || (!canEdit && !!selectedRecord)}
       />
 
       {/* Division Assignment Modal */}
