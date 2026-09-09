@@ -7,6 +7,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 
 import { api } from '../../lib/api';
+import { WORLD_COUNTRIES, COUNTRY_BY_ALPHA2 } from '../../lib/world-countries';
 
 import {
   PincodeRecord,
@@ -39,102 +40,49 @@ interface PincodeModalProps {
 }
 
 /* =========================================================
-   COUNTRY CONFIGURATION
+   COUNTRY CONFIGURATION — address-layout overrides
+   All 195 world countries are available; the list below adds
+   localised address-field labels and postal-lookup placeholders
+   for commonly used countries. Every other country falls back
+   to generic labels and allows manual entry.
    ========================================================= */
 
 interface CountryConfig {
-  code: string;
+  code: string;       // ISO Alpha-2
   name: string;
-
   level1Label: string;
   level2Label: string;
   localityLabel: string;
-
   placeholder: string;
 }
 
-const COUNTRIES: CountryConfig[] = [
-  {
-    code: 'IN',
-    name: 'India',
-    level1Label: 'State / Province',
-    level2Label: 'District',
-    localityLabel: 'City / Town',
-    placeholder: 'e.g. 401209',
-  },
-  {
-    code: 'CN',
-    name: 'China',
-    level1Label: 'Province / Municipality',
-    level2Label: 'District / County',
-    localityLabel: 'City / Town',
-    placeholder: 'e.g. 100000',
-  },
-  {
-    code: 'KR',
-    name: 'South Korea',
-    level1Label: 'Province / Metropolitan City',
-    level2Label: 'District / County',
-    localityLabel: 'City / Town',
-    placeholder: 'e.g. 04524',
-  },
-  {
-    code: 'AF',
-    name: 'Afghanistan',
-    level1Label: 'Province',
-    level2Label: 'District',
-    localityLabel: 'City / Town',
-    placeholder: 'e.g. 1001',
-  },
-  {
-    code: 'US',
-    name: 'United States',
-    level1Label: 'State',
-    level2Label: 'County',
-    localityLabel: 'City',
-    placeholder: 'e.g. 10001',
-  },
-  {
-    code: 'GB',
-    name: 'United Kingdom',
-    level1Label: 'Country / Region',
-    level2Label: 'County',
-    localityLabel: 'Town / City',
-    placeholder: 'e.g. SW1A 1AA',
-  },
-  {
-    code: 'DE',
-    name: 'Germany',
-    level1Label: 'State',
-    level2Label: 'District',
-    localityLabel: 'City / Town',
-    placeholder: 'e.g. 10115',
-  },
-  {
-    code: 'CA',
-    name: 'Canada',
-    level1Label: 'Province / Territory',
-    level2Label: 'District / Region',
-    localityLabel: 'City / Town',
-    placeholder: 'e.g. M5V 3A8',
-  },
-  {
-    code: 'FR',
-    name: 'France',
-    level1Label: 'Region',
-    level2Label: 'Department',
-    localityLabel: 'City / Commune',
-    placeholder: 'e.g. 75001',
-  },
-  {
-    code: 'AU',
-    name: 'Australia',
-    level1Label: 'State / Territory',
-    level2Label: 'Region',
-    localityLabel: 'City / Suburb',
-    placeholder: 'e.g. 2000',
-  },
-];
+/** Countries with specific address-field layouts */
+const ADDRESS_CONFIGS: Record<string, Omit<CountryConfig, 'code' | 'name'>> = {
+  IN: { level1Label: 'State / Province', level2Label: 'District',               localityLabel: 'City / Town',   placeholder: 'e.g. 401209' },
+  CN: { level1Label: 'Province / Municipality', level2Label: 'District / County', localityLabel: 'City / Town', placeholder: 'e.g. 100000' },
+  KR: { level1Label: 'Province / Metro City', level2Label: 'District / County',   localityLabel: 'City / Town', placeholder: 'e.g. 04524'  },
+  AF: { level1Label: 'Province',             level2Label: 'District',             localityLabel: 'City / Town', placeholder: 'e.g. 1001'   },
+  US: { level1Label: 'State',                level2Label: 'County',               localityLabel: 'City',         placeholder: 'e.g. 10001'  },
+  GB: { level1Label: 'Country / Region',     level2Label: 'County',               localityLabel: 'Town / City', placeholder: 'e.g. SW1A 1AA' },
+  DE: { level1Label: 'State',                level2Label: 'District',             localityLabel: 'City / Town', placeholder: 'e.g. 10115'  },
+  CA: { level1Label: 'Province / Territory', level2Label: 'District / Region',    localityLabel: 'City / Town', placeholder: 'e.g. M5V 3A8' },
+  FR: { level1Label: 'Region',               level2Label: 'Department',           localityLabel: 'City / Commune', placeholder: 'e.g. 75001' },
+  AU: { level1Label: 'State / Territory',    level2Label: 'Region',               localityLabel: 'City / Suburb', placeholder: 'e.g. 2000' },
+};
+
+const GENERIC_CONFIG: Omit<CountryConfig, 'code' | 'name'> = {
+  level1Label: 'State / Province / Region',
+  level2Label: 'District / County',
+  localityLabel: 'City / Town',
+  placeholder: 'Enter postal / zip code',
+};
+
+/** Full 195-country list derived from WORLD_COUNTRIES */
+const COUNTRIES: CountryConfig[] = WORLD_COUNTRIES.map((wc) => ({
+  code: wc.alpha2,
+  name: wc.name,
+  ...(ADDRESS_CONFIGS[wc.alpha2] ?? GENERIC_CONFIG),
+}));
 
 /* =========================================================
    INDIA PIN ADMINISTRATIVE OVERRIDES
@@ -340,6 +288,11 @@ export function PincodeModal({
   const [countryCode, setCountryCode] =
     React.useState('IN');
 
+  /* country combobox */
+  const [countrySearch, setCountrySearch] = React.useState('');
+  const [countryDropOpen, setCountryDropOpen] = React.useState(false);
+  const countryDropRef = React.useRef<HTMLDivElement>(null);
+
   const [area, setArea] =
     React.useState('');
 
@@ -379,9 +332,16 @@ export function PincodeModal({
   const lookupRequestId =
     React.useRef(0);
 
-  /* =========================================================
-     CURRENT COUNTRY CONFIG
-     ========================================================= */
+  /* close country dropdown when clicking outside */
+  React.useEffect(() => {
+    function onOutside(e: MouseEvent) {
+      if (countryDropRef.current && !countryDropRef.current.contains(e.target as Node)) {
+        setCountryDropOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', onOutside);
+    return () => document.removeEventListener('mousedown', onOutside);
+  }, []);
 
   const currentCountry =
     COUNTRIES.find(
@@ -1025,28 +985,14 @@ export function PincodeModal({
   const handleCountryChange = (
     newCode: string,
   ) => {
-    const found =
-      COUNTRIES.find(
-        (item) =>
-          item.code === newCode,
-      );
+    const found = COUNTRIES.find((item) => item.code === newCode);
+    if (!found) return;
 
-    if (!found) {
-      return;
-    }
-
-    /*
-     * Invalidate any lookup that may still be running.
-     */
     lookupRequestId.current += 1;
-
-    setCountryCode(
-      found.code,
-    );
-
-    setCountry(
-      found.name,
-    );
+    setCountryCode(found.code);
+    setCountry(found.name);
+    setCountrySearch('');
+    setCountryDropOpen(false);
 
     /*
      * A postal code belongs to a country,
@@ -1224,51 +1170,118 @@ export function PincodeModal({
         className="space-y-4"
       >
         {/* =====================================================
-            COUNTRY
+            COUNTRY — searchable combobox + ISO meta badges
             ===================================================== */}
 
         <div>
           <label className="block text-xs font-semibold text-foreground mb-1">
-            Country
+            Country *
           </label>
 
-          <div className="relative">
-            <Globe className="w-4 h-4 absolute left-3 top-3 text-muted-foreground pointer-events-none" />
+          {/* Combobox trigger + dropdown */}
+          <div className="relative" ref={countryDropRef}>
+            <Globe className="w-4 h-4 absolute left-3 top-3 text-muted-foreground pointer-events-none z-10" />
 
-            <select
-              value={
-                countryCode
-              }
-              onChange={(
-                event,
-              ) =>
-                handleCountryChange(
-                  event.target
-                    .value,
-                )
-              }
-              disabled={
-                isEditing || effectiveReadOnly
-              }
-              className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-input bg-card text-foreground focus:ring-2 focus:ring-primary focus:outline-hidden"
+            {/* Trigger button */}
+            <button
+              type="button"
+              disabled={isEditing || effectiveReadOnly}
+              onClick={() => {
+                if (!isEditing && !effectiveReadOnly) {
+                  setCountryDropOpen((o) => !o);
+                  setCountrySearch('');
+                }
+              }}
+              className="w-full flex items-center pl-9 pr-8 py-2 text-sm rounded-lg border border-input bg-card text-foreground focus:ring-2 focus:ring-primary focus:outline-hidden text-left disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {COUNTRIES.map(
-                (item) => (
-                  <option
-                    key={
-                      item.code
+              <span className="truncate flex-1">
+                {(() => {
+                  const wc = COUNTRY_BY_ALPHA2[countryCode];
+                  return wc ? `${wc.name} (${wc.alpha2})` : countryCode;
+                })()}
+              </span>
+              <ChevronDown className="w-4 h-4 absolute right-2.5 top-3 text-muted-foreground" />
+            </button>
+
+            {/* Dropdown panel */}
+            {countryDropOpen && (
+              <div className="absolute z-50 top-full mt-1 w-full rounded-lg border border-border bg-card shadow-lg">
+                {/* Search input */}
+                <div className="p-2 border-b border-border">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+                    <input
+                      autoFocus
+                      type="text"
+                      placeholder="Search by country name or code…"
+                      value={countrySearch}
+                      onChange={(e) => setCountrySearch(e.target.value)}
+                      className="w-full pl-8 pr-3 py-1.5 text-xs rounded-md border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+                    />
+                  </div>
+                </div>
+
+                {/* Options list */}
+                <div className="max-h-52 overflow-y-auto">
+                  {(() => {
+                    const q = countrySearch.toLowerCase();
+                    const filtered = COUNTRIES.filter(
+                      (c) =>
+                        c.name.toLowerCase().includes(q) ||
+                        c.code.toLowerCase().includes(q),
+                    );
+                    if (filtered.length === 0) {
+                      return (
+                        <p className="py-3 text-center text-xs text-muted-foreground">
+                          No countries match &quot;{countrySearch}&quot;
+                        </p>
+                      );
                     }
-                    value={
-                      item.code
-                    }
-                  >
-                    {item.name} (
-                    {item.code})
-                  </option>
-                ),
-              )}
-            </select>
+                    return filtered.map((item) => (
+                      <button
+                        key={item.code}
+                        type="button"
+                        onClick={() => handleCountryChange(item.code)}
+                        className={`w-full flex items-center justify-between px-3 py-2 text-xs text-left transition-colors ${
+                          item.code === countryCode
+                            ? 'bg-primary/10 text-primary font-semibold'
+                            : 'hover:bg-secondary text-foreground'
+                        }`}
+                      >
+                        <span>{item.name}</span>
+                        <span className="text-muted-foreground font-mono">{item.code}</span>
+                      </button>
+                    ));
+                  })()}
+                </div>
+              </div>
+            )}
           </div>
+
+          {/* ISO meta row — read-only, auto-populated */}
+          {(() => {
+            const wc = COUNTRY_BY_ALPHA2[countryCode];
+            if (!wc) return null;
+            return (
+              <div className="grid grid-cols-4 gap-2 mt-2">
+                {([
+                  { label: 'ISO Alpha-2', value: wc.alpha2 },
+                  { label: 'ISO Alpha-3', value: wc.alpha3 },
+                  { label: 'ISO Numeric', value: wc.numeric },
+                  { label: 'Phone Code',  value: wc.phoneCode },
+                ] as { label: string; value: string }[]).map(({ label, value }) => (
+                  <div key={label}>
+                    <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">
+                      {label}
+                    </p>
+                    <div className="px-2 py-1.5 text-xs rounded-md border border-border/60 bg-secondary/50 text-foreground font-mono select-all">
+                      {value}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
         </div>
 
         {/* =====================================================
