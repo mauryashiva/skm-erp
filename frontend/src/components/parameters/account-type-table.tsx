@@ -52,13 +52,29 @@ export function AccountTypeTable({
   const { activeDivision } = useErpContextStore();
   const [search, setSearch] = React.useState('');
   const [activeOnly, setActiveOnly] = React.useState(false);
+  const [deactivatedOnly, setDeactivatedOnly] = React.useState(false);
   const [modalOpen, setModalOpen] = React.useState(false);
   const [assignModalOpen, setAssignModalOpen] = React.useState(false);
   const [selectedRecord, setSelectedRecord] = React.useState<AccountTypeRecord | null>(null);
   const [isViewOnly, setIsViewOnly] = React.useState(false);
 
+  const handleActiveToggle = (checked: boolean) => {
+    setActiveOnly(checked);
+    if (checked) {
+      setDeactivatedOnly(false);
+    }
+  };
+
+  const handleDeactivatedToggle = (checked: boolean) => {
+    setDeactivatedOnly(checked);
+    if (checked) {
+      setActiveOnly(false);
+    }
+  };
+
   const filteredRecords = accountTypes.filter((rec) => {
     if (activeOnly && !rec.isActive) return false;
+    if (deactivatedOnly && rec.isActive) return false;
 
     // Child divisions must ONLY see account types assigned to their active division
     if (!isHoActive && activeDivision?.id) {
@@ -181,15 +197,27 @@ export function AccountTypeTable({
             />
           </div>
 
-          <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={activeOnly}
-              onChange={(e) => setActiveOnly(e.target.checked)}
-              className="rounded border-input text-primary focus:ring-primary h-3.5 w-3.5 cursor-pointer"
-            />
-            <span>Active Only</span>
-          </label>
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={activeOnly}
+                onChange={(e) => handleActiveToggle(e.target.checked)}
+                className="rounded border-input text-primary focus:ring-primary h-3.5 w-3.5 cursor-pointer"
+              />
+              <span>Active Only</span>
+            </label>
+
+            <label className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={deactivatedOnly}
+                onChange={(e) => handleDeactivatedToggle(e.target.checked)}
+                className="rounded border-input text-primary focus:ring-primary h-3.5 w-3.5 cursor-pointer"
+              />
+              <span>Deactivated Only</span>
+            </label>
+          </div>
         </div>
 
         {canCreate && (
@@ -236,6 +264,10 @@ export function AccountTypeTable({
                       <p className="text-xs max-w-sm">
                         {search
                           ? `No records match "${search}". Try adjusting your search query.`
+                          : activeOnly
+                          ? 'No active Account Types found.'
+                          : deactivatedOnly
+                          ? 'No deactivated Account Types found.'
                           : isHoActive
                           ? 'Get started by creating your first centrally controlled Account Type.'
                           : `No Account Types have been copied or assigned to ${activeDivisionName} yet.`}
