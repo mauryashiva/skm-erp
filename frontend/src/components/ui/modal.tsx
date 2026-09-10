@@ -45,7 +45,7 @@ export function Modal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in"
@@ -55,24 +55,24 @@ export function Modal({
       {/* Modal Dialog */}
       <div
         className={cn(
-          'relative w-full rounded-xl bg-card p-6 shadow-2xl border border-border transition-all animate-in zoom-in-95 max-h-[90vh] flex flex-col',
+          'relative w-full rounded-2xl bg-card p-4 sm:p-6 shadow-2xl border border-border transition-all animate-in zoom-in-95 max-h-[calc(100dvh-2rem)] flex flex-col min-w-0 my-auto',
           maxWidths[maxWidth],
         )}
       >
-        <div className="flex items-start justify-between pb-4 border-b border-border">
+        <div className="flex items-start justify-between pb-3 sm:pb-4 border-b border-border shrink-0">
           <div>
             <h3 className="text-lg font-semibold text-foreground tracking-tight">{title}</h3>
             {description && <p className="text-xs text-muted-foreground mt-1">{description}</p>}
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+            className="rounded-lg p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors cursor-pointer shrink-0 ml-2"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="overflow-y-auto py-4 flex-1">{children}</div>
+        <div className="overflow-y-auto py-3 sm:py-4 flex-1 min-h-0 px-0.5">{children}</div>
       </div>
     </div>
   );

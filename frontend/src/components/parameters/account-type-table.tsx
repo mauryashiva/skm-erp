@@ -182,12 +182,12 @@ export function AccountTypeTable({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full min-w-0">
       {/* Controls: Search, Active Toggle, and Create Button */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-card p-4 rounded-xl border border-border">
-        <div className="flex items-center gap-3 flex-1">
-          <div className="relative flex-1 max-w-md">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-card p-3.5 sm:p-4 rounded-xl border border-border min-w-0">
+        <div className="flex flex-wrap items-center gap-3 flex-1 min-w-0">
+          <div className="relative flex-1 min-w-[220px] max-w-md">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
             <input
               type="text"
               placeholder="Search by Account Type, Short Name, Description..."
@@ -197,7 +197,7 @@ export function AccountTypeTable({
             />
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
             <label className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer select-none">
               <input
                 type="checkbox"
@@ -223,7 +223,7 @@ export function AccountTypeTable({
         {canCreate && (
           <Button
             onClick={handleCreate}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-sm cursor-pointer"
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-sm cursor-pointer shrink-0"
           >
             <Plus className="w-4 h-4" />
             <span>Create Account Type</span>
@@ -232,17 +232,17 @@ export function AccountTypeTable({
       </div>
 
       {/* Account Types Data Table */}
-      <div className="rounded-xl border border-border bg-card overflow-hidden shadow-xs">
-        <div className="overflow-x-auto">
+      <div className="w-full min-w-0 rounded-xl border border-border bg-card overflow-hidden shadow-xs">
+        <div className="w-full overflow-x-auto min-w-0">
           <table className="w-full text-xs text-left">
             <thead className="bg-secondary/70 text-muted-foreground uppercase tracking-wider font-semibold border-b border-border">
               <tr>
-                <th className="px-5 py-3.5">Account Type</th>
-                <th className="px-5 py-3.5">Short Name</th>
-                <th className="px-5 py-3.5">Description</th>
-                <th className="px-5 py-3.5">Assigned Divisions</th>
-                <th className="px-5 py-3.5">Status</th>
-                <th className="px-5 py-3.5 text-right">Actions</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Account Type</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Short Name</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Description</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Assigned Divisions</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">Status</th>
+                <th className="px-5 py-3.5 text-right whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -282,7 +282,7 @@ export function AccountTypeTable({
                     className="hover:bg-secondary/40 transition-colors group"
                   >
                     {/* ACCOUNT TYPE */}
-                    <td className="px-5 py-3.5">
+                    <td className="px-5 py-3.5 whitespace-nowrap">
                       <div className="flex items-center gap-2 font-medium text-foreground">
                         <Tag className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
                         <span className="font-semibold">{record.accountType}</span>
@@ -290,7 +290,7 @@ export function AccountTypeTable({
                     </td>
 
                     {/* SHORT NAME */}
-                    <td className="px-5 py-3.5">
+                    <td className="px-5 py-3.5 whitespace-nowrap">
                       {record.shortName ? (
                         <span className="font-mono text-[11px] font-bold px-2 py-0.5 rounded-md bg-secondary text-primary border border-border">
                           {record.shortName}
@@ -306,7 +306,7 @@ export function AccountTypeTable({
                     </td>
 
                     {/* ASSIGNED DIVISIONS */}
-                    <td className="px-5 py-3.5">
+                    <td className="px-5 py-3.5 whitespace-nowrap">
                       {(() => {
                         const childCount = (record.assignedDivisions || []).filter(
                           (d) => !d.isHo,
@@ -316,14 +316,14 @@ export function AccountTypeTable({
                           <button
                             type="button"
                             onClick={() => handleAssign(record)}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-secondary/80 hover:bg-secondary text-xs font-semibold text-foreground border border-border hover:border-indigo-500/50 transition-all cursor-pointer group"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-secondary/80 hover:bg-secondary text-xs font-semibold text-foreground border border-border hover:border-indigo-500/50 transition-all cursor-pointer group shrink-0"
                             title="Click to manage division assignments"
                           >
-                            <Building2 className="w-3 h-3 text-indigo-500" />
+                            <Building2 className="w-3 h-3 text-indigo-500 shrink-0" />
                             <span>{childCount} {childCount === 1 ? 'Division' : 'Divisions'}</span>
                           </button>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-secondary/80 text-[11px] text-muted-foreground border border-border">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-secondary/80 text-[11px] text-muted-foreground border border-border shrink-0">
                             {record.assignedDivisions?.some((d) => d.name === activeDivisionName)
                               ? `Assigned to ${activeDivisionName}`
                               : `${childCount} ${childCount === 1 ? 'Division' : 'Divisions'}`}
@@ -333,14 +333,14 @@ export function AccountTypeTable({
                     </td>
 
                     {/* STATUS */}
-                    <td className="px-5 py-3.5">
+                    <td className="px-5 py-3.5 whitespace-nowrap">
                       {record.isActive ? (
-                        <Badge variant="success" className="gap-1">
+                        <Badge variant="success" className="gap-1 shrink-0">
                           <CheckCircle2 className="w-3 h-3" />
                           <span>Active</span>
                         </Badge>
                       ) : (
-                        <Badge variant="destructive" className="gap-1">
+                        <Badge variant="destructive" className="gap-1 shrink-0">
                           <XCircle className="w-3 h-3" />
                           <span>Deactivated</span>
                         </Badge>
@@ -348,8 +348,8 @@ export function AccountTypeTable({
                     </td>
 
                     {/* ACTIONS */}
-                    <td className="px-5 py-3.5 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
+                    <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1.5 shrink-0">
                         {canAssign && (
                           <button
                             onClick={() => handleAssign(record)}

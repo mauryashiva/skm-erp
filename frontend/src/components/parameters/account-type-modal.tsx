@@ -252,7 +252,7 @@ export function AccountTypeModal({
           </div>
 
           {/* Divisions List */}
-          <div className="max-h-40 overflow-y-auto border border-border rounded-lg p-2 space-y-1 bg-secondary/30">
+          <div className="max-h-40 overflow-y-auto border border-border rounded-lg p-2 space-y-1 bg-secondary/30 min-w-0">
             {(() => {
               const filtered = allDivisions.filter((d) =>
                 d.name.toLowerCase().includes(divisionSearch.toLowerCase()),
@@ -296,7 +296,7 @@ export function AccountTypeModal({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center justify-end gap-2 pt-4 border-t border-border">
+        <div className="flex items-center justify-end gap-2 pt-4 border-t border-border shrink-0">
           <Button
             type="button"
             variant="outline"

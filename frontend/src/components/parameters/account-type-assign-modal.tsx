@@ -105,9 +105,9 @@ export function AccountTypeAssignModal({
         </div>
 
         {/* Search & Quick Toggles */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 min-w-0">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
             <input
               type="text"
               placeholder="Search divisions..."
@@ -126,7 +126,7 @@ export function AccountTypeAssignModal({
             )}
           </div>
 
-          <div className="flex items-center justify-between sm:justify-end gap-2">
+          <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
             <div className="flex items-center gap-1.5 text-xs">
               <button
                 type="button"
@@ -152,7 +152,7 @@ export function AccountTypeAssignModal({
         </div>
 
         {/* Division Selection Grid */}
-        <div className="max-h-72 overflow-y-auto border border-border rounded-xl p-2 divide-y divide-border/40 bg-secondary/30">
+        <div className="max-h-56 sm:max-h-72 overflow-y-auto border border-border rounded-xl p-2 divide-y divide-border/40 bg-secondary/30 min-w-0">
           {filteredDivisions.length === 0 ? (
             <div className="py-8 text-center text-xs text-muted-foreground">
               No divisions found matching &quot;{search}&quot;
@@ -178,7 +178,7 @@ export function AccountTypeAssignModal({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-2 shrink-0 ml-2">
                     {isHo && (
                       <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-indigo-500/15 text-indigo-600 dark:text-indigo-400">
                         HO Locked
@@ -202,7 +202,7 @@ export function AccountTypeAssignModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
+        <div className="flex items-center justify-end gap-2 pt-3 border-t border-border shrink-0">
           <Button variant="outline" onClick={onClose} disabled={isSaving}>
             Cancel
           </Button>

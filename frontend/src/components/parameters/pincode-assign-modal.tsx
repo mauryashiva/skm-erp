@@ -98,9 +98,9 @@ export function PincodeAssignModal({
         </div>
 
         {/* Search & Quick Toggles */}
-        <div className="flex flex-col sm:flex-row gap-2 items-center justify-between">
-          <div className="relative w-full sm:w-64">
-            <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-muted-foreground" />
+        <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center justify-between min-w-0">
+          <div className="relative flex-1 min-w-[180px] max-w-xs">
+            <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-muted-foreground pointer-events-none" />
             <input
               type="text"
               placeholder="Filter 26 divisions..."
@@ -110,11 +110,11 @@ export function PincodeAssignModal({
             />
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0">
             <button
               type="button"
               onClick={handleSelectAll}
-              className="text-[11px] font-medium text-primary hover:underline"
+              className="text-[11px] font-medium text-primary hover:underline cursor-pointer"
             >
               Select All (26)
             </button>
@@ -122,7 +122,7 @@ export function PincodeAssignModal({
             <button
               type="button"
               onClick={handleDeselectAllChildren}
-              className="text-[11px] font-medium text-muted-foreground hover:text-foreground"
+              className="text-[11px] font-medium text-muted-foreground hover:text-foreground cursor-pointer"
             >
               HO Only
             </button>
@@ -130,7 +130,7 @@ export function PincodeAssignModal({
         </div>
 
         {/* 26 Authoritative Divisions List */}
-        <div className="max-h-72 overflow-y-auto border border-border rounded-lg p-2 space-y-1 bg-card">
+        <div className="max-h-56 sm:max-h-72 overflow-y-auto border border-border rounded-lg p-2 space-y-1 bg-card min-w-0">
           {filteredDivisions.map((div) => {
             const isAssigned = selectedDivisions.includes(div.id);
             return (
@@ -138,27 +138,27 @@ export function PincodeAssignModal({
                 type="button"
                 key={div.id}
                 onClick={() => toggleDivision(div.id)}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs transition-colors text-left ${
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs transition-colors text-left cursor-pointer ${
                   isAssigned
                     ? 'bg-primary/10 text-primary font-semibold'
                     : 'hover:bg-secondary text-foreground'
                 }`}
               >
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-2.5 truncate">
                   <Building2
-                    className={`w-4 h-4 ${
+                    className={`w-4 h-4 shrink-0 ${
                       div.is_ho ? 'text-indigo-500' : isAssigned ? 'text-primary' : 'text-muted-foreground'
                     }`}
                   />
-                  <div>
-                    <span>{div.name}</span>
-                    <span className="text-[10px] text-muted-foreground ml-2 font-normal">
+                  <div className="truncate">
+                    <span className="truncate">{div.name}</span>
+                    <span className="text-[10px] text-muted-foreground ml-2 font-normal font-mono">
                       {div.code}
                     </span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0 ml-2">
                   {div.is_ho && (
                     <span className="text-[9px] bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 font-bold px-1.5 py-0.5 rounded-xs uppercase">
                       HO Controlling
@@ -171,7 +171,7 @@ export function PincodeAssignModal({
           })}
         </div>
 
-        <div className="flex items-center justify-between pt-3 border-t border-border">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-border shrink-0">
           <span className="text-xs text-muted-foreground">
             <strong className="text-foreground">
               {selectedDivisions.filter((id) => !allDivisions.find((d) => d.id === id)?.is_ho).length}
@@ -180,7 +180,7 @@ export function PincodeAssignModal({
             {allDivisions.filter((d) => !d.is_ho).length} child divisions assigned
           </span>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-end gap-2 shrink-0">
             <Button variant="outline" onClick={onClose} disabled={isSaving}>
               Cancel
             </Button>

@@ -171,11 +171,11 @@ export function PincodeTable({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full min-w-0">
       {/* Top Search & Actions Bar */}
-      <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
-        <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 absolute left-3 top-2.5 text-muted-foreground" />
+      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-card p-3.5 sm:p-4 rounded-xl border border-border min-w-0">
+        <div className="relative flex-1 min-w-[220px] max-w-md">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
           <input
             type="text"
             placeholder="Search pincode, city, district, state, area, post office..."
@@ -185,14 +185,14 @@ export function PincodeTable({
           />
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-between sm:justify-end shrink-0">
           {isHoActive && (
             <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={!activeOnly}
                 onChange={(e) => setActiveOnly(!e.target.checked)}
-                className="rounded-xs border-border text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5"
+                className="rounded-xs border-border text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5 cursor-pointer"
               />
               <span>Show Deactivated</span>
             </label>
@@ -202,7 +202,7 @@ export function PincodeTable({
           {canCreate && (
             <Button
               onClick={handleCreate}
-              className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm px-4 py-2 text-xs font-semibold rounded-xl cursor-pointer"
+              className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm px-4 py-2 text-xs font-semibold rounded-xl cursor-pointer shrink-0"
             >
               <Plus className="w-4 h-4" />
               <span>+ Create Pincode</span>
@@ -212,21 +212,21 @@ export function PincodeTable({
       </div>
 
       {/* Real Pincode Table */}
-      <div className="rounded-2xl border border-border bg-card shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="w-full min-w-0 rounded-2xl border border-border bg-card shadow-xs overflow-hidden">
+        <div className="w-full overflow-x-auto min-w-0">
           <table className="w-full text-left text-xs">
             <thead className="bg-secondary/60 border-b border-border text-muted-foreground uppercase text-[10px] font-bold tracking-wider">
               <tr>
-                <th className="px-5 py-3.5">PINCODE</th>
-                <th className="px-5 py-3.5">CITY / TOWN</th>
-                <th className="px-5 py-3.5">DISTRICT</th>
-                <th className="px-5 py-3.5">STATE / PROVINCE</th>
-                <th className="px-5 py-3.5">AREA / LOCALITY</th>
-                <th className="px-5 py-3.5">POST OFFICE</th>
-                <th className="px-5 py-3.5">COUNTRY</th>
-                <th className="px-5 py-3.5">ASSIGNED DIVISIONS</th>
-                <th className="px-5 py-3.5">STATUS</th>
-                <th className="px-5 py-3.5 text-right">ACTIONS</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">PINCODE</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">CITY / TOWN</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">DISTRICT</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">STATE / PROVINCE</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">AREA / LOCALITY</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">POST OFFICE</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">COUNTRY</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">ASSIGNED DIVISIONS</th>
+                <th className="px-5 py-3.5 whitespace-nowrap">STATUS</th>
+                <th className="px-5 py-3.5 text-right whitespace-nowrap">ACTIONS</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -264,55 +264,55 @@ export function PincodeTable({
                       }`}
                   >
                     {/* PINCODE */}
-                    <td className="px-5 py-3.5 font-mono font-bold text-foreground">
+                    <td className="px-5 py-3.5 font-mono font-bold text-foreground whitespace-nowrap">
                       {record.pincode}
                     </td>
 
                     {/* CITY / TOWN */}
-                    <td className="px-5 py-3.5 font-medium text-foreground">
+                    <td className="px-5 py-3.5 font-medium text-foreground whitespace-nowrap">
                       {record.city || '—'}
                     </td>
 
                     {/* DISTRICT */}
-                    <td className="px-5 py-3.5 text-muted-foreground">
+                    <td className="px-5 py-3.5 text-muted-foreground whitespace-nowrap">
                       {record.district || '—'}
                     </td>
 
                     {/* STATE / PROVINCE */}
-                    <td className="px-5 py-3.5 text-muted-foreground">
+                    <td className="px-5 py-3.5 text-muted-foreground whitespace-nowrap">
                       {record.state || '—'}
                     </td>
 
                     {/* AREA / LOCALITY */}
-                    <td className="px-5 py-3.5 text-muted-foreground">
+                    <td className="px-5 py-3.5 text-muted-foreground whitespace-nowrap">
                       {record.area || '—'}
                     </td>
 
                     {/* POST OFFICE */}
-                    <td className="px-5 py-3.5 text-muted-foreground">
+                    <td className="px-5 py-3.5 text-muted-foreground whitespace-nowrap">
                       {record.postOffice || '—'}
                     </td>
 
                     {/* COUNTRY */}
-                    <td className="px-5 py-3.5 text-muted-foreground">
+                    <td className="px-5 py-3.5 text-muted-foreground whitespace-nowrap">
                       {record.country || '—'}
                     </td>
 
                     {/* ASSIGNED DIVISIONS — HO excluded from count (HO is controller, not assignee) */}
-                    <td className="px-5 py-3.5">
+                    <td className="px-5 py-3.5 whitespace-nowrap">
                       {(() => {
                         const childCount = (record.assignedDivisions || []).filter((d) => !d.isHo).length;
                         return canAssign ? (
                           <button
                             onClick={() => handleAssign(record)}
-                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-secondary hover:bg-muted border border-border text-[11px] font-medium transition-colors text-foreground cursor-pointer"
+                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-secondary hover:bg-muted border border-border text-[11px] font-medium transition-colors text-foreground cursor-pointer shrink-0"
                             title="Click to manage division assignments"
                           >
-                            <Building2 className="w-3 h-3 text-indigo-500" />
+                            <Building2 className="w-3 h-3 text-indigo-500 shrink-0" />
                             <span>{childCount} {childCount === 1 ? 'Division' : 'Divisions'}</span>
                           </button>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-secondary/80 text-[11px] text-muted-foreground border border-border">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-secondary/80 text-[11px] text-muted-foreground border border-border shrink-0">
                             {record.assignedDivisions?.some((d) => d.name === activeDivisionName)
                               ? `Assigned to ${activeDivisionName}`
                               : `${childCount} ${childCount === 1 ? 'Division' : 'Divisions'}`}
@@ -322,14 +322,14 @@ export function PincodeTable({
                     </td>
 
                     {/* STATUS */}
-                    <td className="px-5 py-3.5">
+                    <td className="px-5 py-3.5 whitespace-nowrap">
                       {record.isActive ? (
-                        <Badge variant="success" className="gap-1">
+                        <Badge variant="success" className="gap-1 shrink-0">
                           <CheckCircle2 className="w-3 h-3" />
                           <span>Active</span>
                         </Badge>
                       ) : (
-                        <Badge variant="destructive" className="gap-1">
+                        <Badge variant="destructive" className="gap-1 shrink-0">
                           <XCircle className="w-3 h-3" />
                           <span>Deactivated</span>
                         </Badge>
@@ -337,8 +337,8 @@ export function PincodeTable({
                     </td>
 
                     {/* ACTIONS */}
-                    <td className="px-5 py-3.5 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
+                    <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1.5 shrink-0">
                         {canAssign && (
                           <button
                             onClick={() => handleAssign(record)}

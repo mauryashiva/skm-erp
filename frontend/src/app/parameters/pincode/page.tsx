@@ -83,12 +83,12 @@ export default function PincodePage() {
   const canAssign = isMounted && currentIsHoActive && hasPermission('parameters.pincode.assign');
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 min-w-0 space-y-6">
       {/* Top Breadcrumb & Page Heading */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-border/60">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-border/60 min-w-0">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+            <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
               <MapPin className="w-5 h-5" />
             </div>
             <div>
@@ -114,7 +114,7 @@ export default function PincodePage() {
           </div>
         </div>
 
-        <div className="text-xs text-muted-foreground sm:text-right">
+        <div className="text-xs text-muted-foreground sm:text-right shrink-0">
           <span className="font-semibold text-foreground" suppressHydrationWarning>
             {currentDivisionName}
           </span>

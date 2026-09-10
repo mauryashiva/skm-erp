@@ -51,17 +51,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
+    <div className="min-h-screen bg-background text-foreground flex flex-col w-full max-w-full overflow-x-hidden">
       {/* Top Global Application Bar */}
       <Navbar />
 
-      <div className="flex flex-1">
+      <div className="flex flex-1 min-w-0 w-full overflow-x-hidden">
         {/* Collapsible, permission-driven Sidebar */}
         <Sidebar />
 
         {/* Dynamic Content Area with sidebar offset */}
         <main
-          className={`flex-1 transition-all duration-300 ease-in-out ${
+          className={`flex-1 min-w-0 w-full overflow-x-hidden transition-all duration-300 ease-in-out ${
             isCollapsed ? 'lg:pl-18' : 'lg:pl-64'
           }`}
         >

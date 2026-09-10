@@ -91,12 +91,12 @@ export default function ParametersPage() {
     : 'Authoritative Central Repository';
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 min-w-0 space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-border/60">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-border/60 min-w-0">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+            <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
               <SlidersHorizontal className="w-5 h-5" />
             </div>
             <div>
@@ -115,7 +115,7 @@ export default function ParametersPage() {
           </p>
         </div>
 
-        <div className="text-xs text-muted-foreground sm:text-right">
+        <div className="text-xs text-muted-foreground sm:text-right shrink-0">
           <span className="font-semibold text-foreground" suppressHydrationWarning>
             {currentDivisionName}
           </span>
@@ -126,14 +126,14 @@ export default function ParametersPage() {
       </div>
 
       {/* Available Parameter Modules */}
-      <div>
+      <div className="min-w-0">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
             Available Parameter Forms (2)
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 min-w-0">
           {/* PINCODE */}
           <Link
             href="/parameters/pincode"

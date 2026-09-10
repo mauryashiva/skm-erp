@@ -1263,7 +1263,7 @@ export function PincodeModal({
             const wc = COUNTRY_BY_ALPHA2[countryCode];
             if (!wc) return null;
             return (
-              <div className="grid grid-cols-4 gap-2 mt-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2 min-w-0">
                 {([
                   { label: 'ISO Alpha-2', value: wc.alpha2 },
                   { label: 'ISO Alpha-3', value: wc.alpha3 },
@@ -1563,7 +1563,7 @@ export function PincodeModal({
             )}
           </div>
 
-          <div className="max-h-40 overflow-y-auto border border-border rounded-lg p-2 space-y-1 bg-secondary/30">
+          <div className="max-h-40 overflow-y-auto border border-border rounded-lg p-2 space-y-1 bg-secondary/30 min-w-0">
             {(() => {
               const filtered = allDivisions.filter((d) =>
                 d.name.toLowerCase().includes(divisionSearch.toLowerCase()),
@@ -1610,7 +1610,7 @@ export function PincodeModal({
             ACTIONS
             ===================================================== */}
 
-        <div className="flex items-center justify-end gap-2 pt-4 border-t border-border">
+        <div className="flex items-center justify-end gap-2 pt-4 border-t border-border shrink-0">
           <Button
             type="button"
             variant="outline"
