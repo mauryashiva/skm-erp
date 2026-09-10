@@ -55,6 +55,17 @@ export interface PincodeRecord {
   updatedAt: string;
 }
 
+export interface AccountTypeRecord {
+  id: string;
+  accountType: string;
+  shortName?: string;
+  description?: string;
+  isActive: boolean;
+  assignedDivisions: AssignedDivision[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface PostalLocation {
   postalCode: string;
   city: string;

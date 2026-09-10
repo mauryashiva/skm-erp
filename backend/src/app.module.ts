@@ -7,6 +7,7 @@ import { DivisionsModule } from './divisions/divisions.module';
 import { FinancialYearsModule } from './financial-years/financial-years.module';
 import { PostalLookupModule } from './postal-lookup/postal-lookup.module';
 import { PincodeModule } from './parameters/pincode/pincode.module';
+import { AccountTypeModule } from './parameters/account-type/account-type.module';
 import { UsersModule } from './users/users.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -23,6 +24,7 @@ import { AppService } from './app.service';
     FinancialYearsModule,
     PostalLookupModule,
     PincodeModule,
+    AccountTypeModule,
     UsersModule,
   ],
   controllers: [AppController],

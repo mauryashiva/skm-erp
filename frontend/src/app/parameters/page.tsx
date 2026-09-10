@@ -4,14 +4,17 @@ import * as React from 'react';
 import Link from 'next/link';
 import { api } from '../../lib/api';
 import { useErpContextStore } from '../../stores/context-store';
-import { PincodeRecord } from '../../types';
+import { PincodeRecord, AccountTypeRecord } from '../../types';
 import { useRealtimePincodes } from '../../hooks/use-realtime-pincodes';
-import { MapPin, ChevronRight, SlidersHorizontal, ArrowRight } from 'lucide-react';
+import { useRealtimeAccountTypes } from '../../hooks/use-realtime-account-types';
+import { MapPin, Tag, ChevronRight, SlidersHorizontal, ArrowRight } from 'lucide-react';
 
 export default function ParametersPage() {
   const { activeDivision, isHoActive } = useErpContextStore();
   const [pincodeCount, setPincodeCount] = React.useState<number | null>(null);
+  const [accountTypeCount, setAccountTypeCount] = React.useState<number | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [isAccountTypeLoading, setIsAccountTypeLoading] = React.useState(true);
   const [isMounted, setIsMounted] = React.useState(false);
 
   React.useEffect(() => {
@@ -26,7 +29,6 @@ export default function ParametersPage() {
         activeOnly: 'false',
       });
       const records = Array.isArray(data) ? data : [];
-      // Calculate count using the exact same division-assignment visibility logic as Pincode table
       const visibleRecords = isHoActive
         ? records
         : records.filter((p) =>
@@ -41,13 +43,42 @@ export default function ParametersPage() {
     }
   }, [activeDivision, isHoActive]);
 
+  const fetchAccountTypeCount = React.useCallback(async () => {
+    if (!activeDivision) return;
+    setIsAccountTypeLoading(true);
+    try {
+      const data = await api.get<AccountTypeRecord[]>('/parameters/account-types', {
+        activeOnly: 'false',
+      });
+      const records = Array.isArray(data) ? data : [];
+      const visibleRecords = isHoActive
+        ? records
+        : records.filter((rec) =>
+            rec.isActive &&
+            rec.assignedDivisions?.some((div) => div.id === activeDivision.id),
+          );
+      setAccountTypeCount(visibleRecords.length);
+    } catch (err) {
+      console.warn('Fetch account type count error:', err);
+      setAccountTypeCount(0);
+    } finally {
+      setIsAccountTypeLoading(false);
+    }
+  }, [activeDivision, isHoActive]);
+
   React.useEffect(() => {
     fetchPincodeCount();
-  }, [fetchPincodeCount]);
+    fetchAccountTypeCount();
+  }, [fetchPincodeCount, fetchAccountTypeCount]);
 
   // Hook into live Supabase Realtime changes for pincodes & division assignments
   useRealtimePincodes(() => {
     fetchPincodeCount();
+  });
+
+  // Hook into live Supabase Realtime changes for account types & division assignments
+  useRealtimeAccountTypes(() => {
+    fetchAccountTypeCount();
   });
 
   const currentDivisionName = isMounted
@@ -94,15 +125,16 @@ export default function ParametersPage() {
         </div>
       </div>
 
-      {/* Available Parameter Modules — REAL PINCODE FORM WITH DYNAMIC DIVISION COUNT */}
+      {/* Available Parameter Modules */}
       <div>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            Available Parameter Forms (1)
+            Available Parameter Forms (2)
           </h2>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {/* PINCODE */}
           <Link
             href="/parameters/pincode"
             className="group relative flex flex-col justify-between p-5 rounded-2xl border border-border bg-card hover:border-indigo-500/50 hover:shadow-md transition-all duration-200 cursor-pointer"
@@ -130,6 +162,38 @@ export default function ParametersPage() {
 
             <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between text-xs font-semibold text-indigo-600 dark:text-indigo-400">
               <span>Open Pincode Page</span>
+              <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
+            </div>
+          </Link>
+
+          {/* ACCOUNT TYPE */}
+          <Link
+            href="/parameters/account-type"
+            className="group relative flex flex-col justify-between p-5 rounded-2xl border border-border bg-card hover:border-indigo-500/50 hover:shadow-md transition-all duration-200 cursor-pointer"
+          >
+            <div>
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-sm">
+                  <Tag className="w-5 h-5" />
+                </div>
+                <span
+                  className="text-xs font-bold font-mono px-2.5 py-1 rounded-md bg-secondary text-muted-foreground"
+                  suppressHydrationWarning
+                >
+                  {!isMounted || isAccountTypeLoading ? '...' : `${accountTypeCount ?? 0} Records`}
+                </span>
+              </div>
+
+              <h3 className="text-base font-bold text-foreground group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                Account Type
+              </h3>
+              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                Authoritative financial account classifications with multi-division copy and assignment.
+              </p>
+            </div>
+
+            <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between text-xs font-semibold text-indigo-600 dark:text-indigo-400">
+              <span>Open Account Type Page</span>
               <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
             </div>
           </Link>
