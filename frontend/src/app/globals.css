@@ -162,3 +162,39 @@ body {
   box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 }
 
+/* -----------------------------------------------------------------
+   ERP STICKY ACTIONS COLUMN STANDARD
+   Apply .erp-sticky-col to the ACTIONS <th> and each ACTIONS <td>
+   in every ERP table that uses overflow-x-auto horizontal scrolling.
+   The column stays pinned to the right edge while all other columns
+   scroll underneath it.
+   ----------------------------------------------------------------- */
+.erp-sticky-col {
+  position: sticky;
+  right: 0;
+  z-index: 10;
+  /* Solid background so scrolling rows don't bleed through */
+  background-color: var(--card);
+}
+
+/* Header cell inherits thead background */
+thead .erp-sticky-col {
+  background-color: var(--secondary);
+}
+
+/* Give it a left-side shadow to visually separate from scrolling columns */
+.erp-sticky-col::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -16px;
+  width: 16px;
+  height: 100%;
+  background: linear-gradient(to right, transparent, var(--card));
+  pointer-events: none;
+}
+
+thead .erp-sticky-col::before {
+  background: linear-gradient(to right, transparent, var(--secondary));
+}
+

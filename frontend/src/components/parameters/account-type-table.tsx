@@ -242,7 +242,7 @@ export function AccountTypeTable({
                 <th className="px-5 py-3.5 whitespace-nowrap">Description</th>
                 <th className="px-5 py-3.5 whitespace-nowrap">Assigned Divisions</th>
                 <th className="px-5 py-3.5 whitespace-nowrap">Status</th>
-                <th className="px-5 py-3.5 text-right whitespace-nowrap">Actions</th>
+                <th className="erp-sticky-col px-5 py-3.5 text-right whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -348,7 +348,7 @@ export function AccountTypeTable({
                     </td>
 
                     {/* ACTIONS */}
-                    <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                    <td className="erp-sticky-col px-5 py-3.5 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-1.5 shrink-0">
                         {canAssign && (
                           <button

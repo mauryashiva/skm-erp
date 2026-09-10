@@ -226,7 +226,7 @@ export function PincodeTable({
                 <th className="px-5 py-3.5 whitespace-nowrap">COUNTRY</th>
                 <th className="px-5 py-3.5 whitespace-nowrap">ASSIGNED DIVISIONS</th>
                 <th className="px-5 py-3.5 whitespace-nowrap">STATUS</th>
-                <th className="px-5 py-3.5 text-right whitespace-nowrap">ACTIONS</th>
+                <th className="erp-sticky-col px-5 py-3.5 text-right whitespace-nowrap">ACTIONS</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -337,7 +337,7 @@ export function PincodeTable({
                     </td>
 
                     {/* ACTIONS */}
-                    <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                    <td className="erp-sticky-col px-5 py-3.5 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-1.5 shrink-0">
                         {canAssign && (
                           <button
