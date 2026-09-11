@@ -4,25 +4,30 @@ import * as React from 'react';
 import Link from 'next/link';
 import { PincodeTable } from '../../../components/parameters/pincode-table';
 import { api } from '../../../lib/api';
-import { useAuthStore } from '../../../stores/auth-store';
 import { useErpContextStore } from '../../../stores/context-store';
+import { useParameterPermissions } from '../../../hooks/use-parameter-permissions';
 import { useRealtimePincodes } from '../../../hooks/use-realtime-pincodes';
 import { PincodeRecord, Division } from '../../../types';
 import { MapPin, ChevronRight, Radio } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function PincodePage() {
-  const { hasPermission } = useAuthStore();
-  const { activeDivision, isHoActive, availableDivisions } = useErpContextStore();
+  const { activeDivision, availableDivisions } = useErpContextStore();
 
   const [pincodes, setPincodes] = React.useState<PincodeRecord[]>([]);
   const [allDivisions, setAllDivisions] = React.useState<Division[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
-  const [isMounted, setIsMounted] = React.useState(false);
 
-  React.useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  const {
+    isMounted,
+    isHoActive: currentIsHoActive,
+    activeDivisionName: currentDivisionName,
+    viewLabel: currentViewLabel,
+    canCreate,
+    canEdit,
+    canDelete,
+    canAssign,
+  } = useParameterPermissions('pincode');
 
   // Load authoritative divisions for HO assignment selection
   React.useEffect(() => {
@@ -64,23 +69,7 @@ export default function PincodePage() {
     fetchPincodes();
   });
 
-  // Authorization checks based on HO control and role permissions
-  const currentIsHoActive = isMounted ? isHoActive : true;
-  const currentDivisionName = isMounted
-    ? activeDivision?.name || 'SKM STEELS LIMITED (HO)'
-    : 'SKM STEELS LIMITED (HO)';
-  const currentViewLabel = isMounted
-    ? isHoActive
-      ? 'Authoritative Central Repository'
-      : 'Assigned Records View'
-    : 'Authoritative Central Repository';
 
-  // Authorization checks — all default false until client is mounted so SSR
-  // and the first client paint match (avoids hydration mismatch from localStorage).
-  const canCreate = isMounted && currentIsHoActive && hasPermission('parameters.pincode.create');
-  const canEdit   = isMounted && currentIsHoActive && hasPermission('parameters.pincode.edit');
-  const canDelete = isMounted && currentIsHoActive && hasPermission('parameters.pincode.delete');
-  const canAssign = isMounted && currentIsHoActive && hasPermission('parameters.pincode.assign');
 
   return (
     <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 min-w-0 space-y-6">
