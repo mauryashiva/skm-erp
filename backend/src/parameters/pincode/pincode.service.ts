@@ -8,6 +8,7 @@ import {
 import { SupabaseService } from '../../supabase/supabase.service';
 import { AuthUser } from '../../common/interfaces/auth-user.interface';
 import { ParameterDivisionService } from '../../common/services/parameter-division.service';
+import { AuditService } from '../../common/services/audit.service';
 import { CreatePincodeDto } from './dto/create-pincode.dto';
 import { UpdatePincodeDto } from './dto/update-pincode.dto';
 
@@ -62,6 +63,7 @@ export class PincodeService {
   constructor(
     private readonly supabaseService: SupabaseService,
     private readonly parameterDivisionService: ParameterDivisionService,
+    private readonly auditService: AuditService,
   ) { }
 
   /**
@@ -388,7 +390,23 @@ export class PincodeService {
       dto.assignedDivisionIds || [],
     );
 
-    return this.getPincodeById(pincodeRow.id);
+    const createdRecord = await this.getPincodeById(pincodeRow.id);
+
+    await this.auditService.logAction({
+      entityType: 'pincodes',
+      entityId: createdRecord.id,
+      action: 'CREATE',
+      user,
+      changes: {
+        pincode: createdRecord.pincode,
+        city: createdRecord.city,
+        state: createdRecord.state,
+        country: createdRecord.country,
+        assignedDivisions: createdRecord.assignedDivisions.map((d) => d.name),
+      },
+    });
+
+    return createdRecord;
   }
 
   /**
@@ -403,6 +421,8 @@ export class PincodeService {
   ): Promise<PincodeRecord> {
     const supabase =
       this.supabaseService.getClient();
+
+    const existing = await this.getPincodeById(id);
 
     const updatePayload: Record<
       string,
@@ -508,9 +528,33 @@ export class PincodeService {
       );
     }
 
-    return this.getPincodeById(
-      id,
+    const updatedRecord = await this.getPincodeById(id);
+
+    const diffs = this.auditService.computeFieldDiffs(
+      existing as any,
+      {
+        city: dto.city,
+        district: dto.district,
+        state: dto.state,
+        country: dto.country,
+        countryCode: dto.countryCode,
+        area: dto.area,
+        postOffice: dto.postOffice,
+        isActive: dto.isActive,
+      },
     );
+
+    if (Object.keys(diffs).length > 0) {
+      await this.auditService.logAction({
+        entityType: 'pincodes',
+        entityId: id,
+        action: 'UPDATE',
+        user,
+        changes: diffs,
+      });
+    }
+
+    return updatedRecord;
   }
 
   /**
@@ -533,6 +577,20 @@ export class PincodeService {
       user,
     );
 
+    await this.auditService.logAction({
+      entityType: 'pincodes',
+      entityId: id,
+      action: 'DEACTIVATE',
+      user,
+      changes: {
+        status: {
+          label: 'Status',
+          before: 'Active',
+          after: 'Deactivated',
+        },
+      },
+    });
+
     return {
       message:
         'Pincode deactivated in Supabase database (Soft Deleted).',
@@ -550,13 +608,29 @@ export class PincodeService {
     id: string,
     user: AuthUser,
   ): Promise<PincodeRecord> {
-    return this.updatePincode(
+    const res = await this.updatePincode(
       id,
       {
         isActive: true,
       },
       user,
     );
+
+    await this.auditService.logAction({
+      entityType: 'pincodes',
+      entityId: id,
+      action: 'ACTIVATE',
+      user,
+      changes: {
+        status: {
+          label: 'Status',
+          before: 'Deactivated',
+          after: 'Active',
+        },
+      },
+    });
+
+    return res;
   }
 
   /**
@@ -575,7 +649,7 @@ export class PincodeService {
       this.supabaseService.getClient();
 
     // Verify existence first
-    await this.getPincodeById(id);
+    const snapshot = await this.getPincodeById(id);
 
     // Remove relationships and master record
     await supabase
@@ -595,6 +669,20 @@ export class PincodeService {
       );
     }
 
+    await this.auditService.logAction({
+      entityType: 'pincodes',
+      entityId: id,
+      action: 'DELETE',
+      user,
+      changes: {
+        pincode: snapshot.pincode,
+        city: snapshot.city,
+        state: snapshot.state,
+        country: snapshot.country,
+        note: 'Record permanently deleted',
+      },
+    });
+
     return {
       message: 'Pincode permanently deleted from database.',
       id,
@@ -604,19 +692,6 @@ export class PincodeService {
   /**
    * Replace the complete division assignment
    * list for one Pincode.
-   *
-   * Example:
-   *
-   * Existing:
-   *   HO + Indore + Mumbai
-   *
-   * New:
-   *   HO + Indore
-   *
-   * Result:
-   *   Mumbai immediately loses access.
-   *
-   * The Pincode master itself is NOT deleted.
    */
   async assignDivisions(
     id: string,
@@ -624,7 +699,17 @@ export class PincodeService {
     user: AuthUser,
   ): Promise<PincodeRecord> {
     // Verify record exists first
-    await this.getPincodeById(id);
+    const existing = await this.getPincodeById(id);
+
+    const supabase = this.supabaseService.getClient();
+    const { data: divData } = await supabase.from('divisions').select('id, name');
+    const allDivs = divData || [];
+
+    const divisionDiff = this.auditService.computeDivisionAssignmentDiff(
+      existing.assignedDivisions,
+      divisionIds,
+      allDivs,
+    );
 
     try {
       await this.parameterDivisionService.syncDivisionAssignments(
@@ -636,6 +721,22 @@ export class PincodeService {
       throw new BadRequestException(
         `Failed to update division assignments: ${err.message}`,
       );
+    }
+
+    if (divisionDiff.added.length > 0 || divisionDiff.removed.length > 0) {
+      await this.auditService.logAction({
+        entityType: 'pincodes',
+        entityId: id,
+        action: 'ASSIGN_DIVISIONS',
+        user,
+        changes: {
+          assignedDivisions: {
+            label: 'Assigned Divisions',
+            added: divisionDiff.added,
+            removed: divisionDiff.removed,
+          },
+        },
+      });
     }
 
     return this.getPincodeById(id);

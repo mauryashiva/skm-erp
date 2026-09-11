@@ -24,6 +24,7 @@ import { PincodeModal } from './pincode-modal';
 import { PincodeAssignModal } from './pincode-assign-modal';
 import { TableFilterToolbar } from '../shared/table-filter-toolbar';
 import { TableActionsGroup } from '../shared/table-actions-group';
+import { AuditHistoryModal } from '../shared/audit-history-modal';
 import { api } from '../../lib/api';
 import { toast } from 'sonner';
 import { useErpContextStore } from '../../stores/context-store';
@@ -59,6 +60,8 @@ export function PincodeTable({
   const [deactivatedOnly, setDeactivatedOnly] = React.useState(false);
   const [modalOpen, setModalOpen] = React.useState(false);
   const [assignModalOpen, setAssignModalOpen] = React.useState(false);
+  const [historyModalOpen, setHistoryModalOpen] = React.useState(false);
+  const [historyRecord, setHistoryRecord] = React.useState<PincodeRecord | null>(null);
   const [selectedRecord, setSelectedRecord] = React.useState<PincodeRecord | null>(null);
   const [isViewOnly, setIsViewOnly] = React.useState(false);
 
@@ -126,6 +129,11 @@ export function PincodeTable({
     if (!canAssign) return;
     setSelectedRecord(record);
     setAssignModalOpen(true);
+  };
+
+  const handleHistory = (record: PincodeRecord) => {
+    setHistoryRecord(record);
+    setHistoryModalOpen(true);
   };
 
   const handleActivate = async (record: PincodeRecord) => {
@@ -336,6 +344,7 @@ export function PincodeTable({
                         canAssign={canAssign}
                         isHoActive={isHoActive}
                         onView={() => handleView(record)}
+                        onHistory={() => handleHistory(record)}
                         onEdit={() => handleEdit(record)}
                         onAssign={() => handleAssign(record)}
                         onDeactivate={() => handleDeactivate(record)}
@@ -371,6 +380,15 @@ export function PincodeTable({
         onSuccess={onRefresh}
         pincode={selectedRecord}
         allDivisions={allDivisions}
+      />
+
+      {/* Audit History Timeline Modal */}
+      <AuditHistoryModal
+        isOpen={historyModalOpen}
+        onClose={() => setHistoryModalOpen(false)}
+        entityType="pincodes"
+        entityId={historyRecord?.id || ''}
+        recordTitle={historyRecord ? `Pincode: ${historyRecord.pincode} (${historyRecord.city})` : undefined}
       />
     </div>
   );

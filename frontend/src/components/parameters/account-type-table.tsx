@@ -23,6 +23,7 @@ import { AccountTypeModal } from './account-type-modal';
 import { AccountTypeAssignModal } from './account-type-assign-modal';
 import { TableFilterToolbar } from '../shared/table-filter-toolbar';
 import { TableActionsGroup } from '../shared/table-actions-group';
+import { AuditHistoryModal } from '../shared/audit-history-modal';
 import { api } from '../../lib/api';
 import { toast } from 'sonner';
 import { useErpContextStore } from '../../stores/context-store';
@@ -58,6 +59,8 @@ export function AccountTypeTable({
   const [deactivatedOnly, setDeactivatedOnly] = React.useState(false);
   const [modalOpen, setModalOpen] = React.useState(false);
   const [assignModalOpen, setAssignModalOpen] = React.useState(false);
+  const [historyModalOpen, setHistoryModalOpen] = React.useState(false);
+  const [historyRecord, setHistoryRecord] = React.useState<AccountTypeRecord | null>(null);
   const [selectedRecord, setSelectedRecord] = React.useState<AccountTypeRecord | null>(null);
   const [isViewOnly, setIsViewOnly] = React.useState(false);
 
@@ -121,6 +124,11 @@ export function AccountTypeTable({
     if (!canAssign) return;
     setSelectedRecord(record);
     setAssignModalOpen(true);
+  };
+
+  const handleHistory = (record: AccountTypeRecord) => {
+    setHistoryRecord(record);
+    setHistoryModalOpen(true);
   };
 
   const handleActivate = async (record: AccountTypeRecord) => {
@@ -322,6 +330,7 @@ export function AccountTypeTable({
                         canAssign={canAssign}
                         isHoActive={isHoActive}
                         onView={() => handleView(record)}
+                        onHistory={() => handleHistory(record)}
                         onEdit={() => handleEdit(record)}
                         onAssign={() => handleAssign(record)}
                         onDeactivate={() => handleDeactivate(record)}
@@ -357,6 +366,15 @@ export function AccountTypeTable({
         onSuccess={onRefresh}
         accountType={selectedRecord}
         allDivisions={allDivisions}
+      />
+
+      {/* Audit History Timeline Modal */}
+      <AuditHistoryModal
+        isOpen={historyModalOpen}
+        onClose={() => setHistoryModalOpen(false)}
+        entityType="account_types"
+        entityId={historyRecord?.id || ''}
+        recordTitle={historyRecord ? `Account Type: ${historyRecord.accountType} (${historyRecord.shortName || 'Standard'})` : undefined}
       />
     </div>
   );

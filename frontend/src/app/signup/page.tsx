@@ -9,6 +9,7 @@ import { api } from '../../lib/api';
 import { Division } from '../../types';
 import {
   User,
+  Mail,
   Phone,
   Building2,
   Lock,
@@ -23,6 +24,8 @@ export default function SignupPage() {
   const [divisions, setDivisions] = React.useState<Division[]>([]);
   const [fullName, setFullName] = React.useState('');
   const [username, setUsername] = React.useState('');
+  const [email, setEmail] = React.useState('');
+  const [gender, setGender] = React.useState<'Male' | 'Female' | ''>('');
   const [mobileNumber, setMobileNumber] = React.useState('');
   const [divisionId, setDivisionId] = React.useState('');
   const [password, setPassword] = React.useState('');
@@ -48,6 +51,17 @@ export default function SignupPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      toast.error('Please enter a valid Email ID');
+      return;
+    }
+
+    if (!gender) {
+      toast.error('Please select gender (Male or Female)');
+      return;
+    }
+
     if (password !== confirmPassword) {
       toast.error('Password and confirmation password do not match');
       return;
@@ -58,6 +72,8 @@ export default function SignupPage() {
       await api.post('/auth/signup', {
         fullName: fullName.trim(),
         username: username.trim().toLowerCase(),
+        email: email.trim().toLowerCase(),
+        gender,
         mobileNumber: mobileNumber.trim(),
         divisionId,
         password,
@@ -179,6 +195,59 @@ export default function SignupPage() {
                     className="pl-9"
                     required
                   />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Email ID */}
+              <div>
+                <label className="block text-xs font-semibold text-foreground mb-1">
+                  Email ID *
+                </label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="e.g. rajesh@skmsteels.com"
+                    className="pl-9"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Gender */}
+              <div>
+                <label className="block text-xs font-semibold text-foreground mb-1">
+                  Gender *
+                </label>
+                <div className="flex items-center gap-4 h-9 px-3 rounded-lg border border-input bg-card">
+                  <label className="flex items-center gap-1.5 text-xs font-medium cursor-pointer text-foreground select-none">
+                    <input
+                      type="radio"
+                      name="gender"
+                      value="Male"
+                      checked={gender === 'Male'}
+                      onChange={() => setGender('Male')}
+                      className="w-3.5 h-3.5 text-primary accent-primary cursor-pointer"
+                      required
+                    />
+                    <span>Male</span>
+                  </label>
+                  <label className="flex items-center gap-1.5 text-xs font-medium cursor-pointer text-foreground select-none">
+                    <input
+                      type="radio"
+                      name="gender"
+                      value="Female"
+                      checked={gender === 'Female'}
+                      onChange={() => setGender('Female')}
+                      className="w-3.5 h-3.5 text-primary accent-primary cursor-pointer"
+                      required
+                    />
+                    <span>Female</span>
+                  </label>
                 </div>
               </div>
             </div>

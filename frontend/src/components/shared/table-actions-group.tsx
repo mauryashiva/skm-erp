@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Eye, Edit2, Share2, PowerOff, RotateCcw, Trash2 } from 'lucide-react';
+import { Eye, Edit2, Share2, PowerOff, RotateCcw, Trash2, History } from 'lucide-react';
 
 export interface TableActionsGroupProps {
   /** True if record is currently active */
@@ -20,6 +20,7 @@ export interface TableActionsGroupProps {
   onActivate?: () => void;
   onDeactivate?: () => void;
   onDelete?: () => void;
+  onHistory?: () => void;
 
   /** Custom Title Tooltips */
   viewTitle?: string;
@@ -28,6 +29,7 @@ export interface TableActionsGroupProps {
   activateTitle?: string;
   deactivateTitle?: string;
   deleteTitle?: string;
+  historyTitle?: string;
 }
 
 export function TableActionsGroup({
@@ -42,12 +44,14 @@ export function TableActionsGroup({
   onActivate,
   onDeactivate,
   onDelete,
+  onHistory,
   viewTitle = 'View Record Details',
   editTitle = 'Edit Record',
   assignTitle = 'Assign to Divisions',
   activateTitle = 'Activate Record',
   deactivateTitle = 'Deactivate Record (Soft Delete)',
   deleteTitle = 'Permanently Delete Record',
+  historyTitle = 'View Audit History',
 }: TableActionsGroupProps) {
   // Mutation operations (Edit, Delete, Assign) require HO control permission
   const effectiveCanEdit = canEdit && isHoActive;
@@ -77,6 +81,18 @@ export function TableActionsGroup({
           title={viewTitle}
         >
           <Eye className="w-4 h-4" />
+        </button>
+      )}
+
+      {/* View Audit History */}
+      {onHistory && (
+        <button
+          type="button"
+          onClick={onHistory}
+          className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-blue-600 transition-colors cursor-pointer"
+          title={historyTitle}
+        >
+          <History className="w-4 h-4" />
         </button>
       )}
 

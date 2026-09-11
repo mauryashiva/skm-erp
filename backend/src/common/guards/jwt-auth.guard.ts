@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { SupabaseService } from '../../supabase/supabase.service';
 import { AuthUser, DivisionInfo } from '../interfaces/auth-user.interface';
+import { inMemoryUsersStore } from '../../auth/pending-users.store';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -15,7 +16,8 @@ export class JwtAuthGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
     const authHeader = request.headers['authorization'];
-    const activeDivisionId = request.headers['x-division-id'] as string | undefined;
+    const activeDivisionId = (request.headers['x-division-id'] ||
+      request.headers['x-active-division-id']) as string | undefined;
 
     // Support mock dev session if token is 'mock-dev-token'
     if (authHeader === 'Bearer mock-dev-token' || authHeader === 'Bearer dev-ho-admin-token') {
@@ -33,6 +35,10 @@ export class JwtAuthGuard implements CanActivate {
         is_ho: false,
       };
 
+      if (!isHO && activeDivisionId && activeDivisionId !== childDivision.id) {
+        throw new ForbiddenException('User is not authorized for the requested active division');
+      }
+
       const selectedDivision = activeDivisionId === childDivision.id ? childDivision : hoDivision;
 
       request.user = {
@@ -43,7 +49,7 @@ export class JwtAuthGuard implements CanActivate {
         status: 'APPROVED',
         is_super_admin: isHO,
         primary_division: selectedDivision,
-        authorized_divisions: [hoDivision, childDivision],
+        authorized_divisions: isHO ? [hoDivision, childDivision] : [childDivision],
         roles: isHO ? ['Super Admin', 'HO Administrator'] : ['Division User'],
         permissions: isHO
           ? [
@@ -72,6 +78,45 @@ export class JwtAuthGuard implements CanActivate {
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       throw new UnauthorizedException('Authentication token missing or invalid');
+    }
+
+    // Support dev session tokens created in memory
+    if (authHeader.startsWith('Bearer dev-session-')) {
+      const sessionId = authHeader.replace('Bearer dev-session-', '').trim();
+      const memUser = Array.from(inMemoryUsersStore.values()).find(
+        (u) => u.id === sessionId,
+      );
+      if (memUser) {
+        if (memUser.status !== 'APPROVED' && !memUser.isSuperAdmin) {
+          throw new ForbiddenException(
+            `Account status is ${memUser.status}. Access is pending administrator review and approval.`,
+          );
+        }
+        const authorizedDivisions = memUser.authorizedDivisions || [memUser.primaryDivision];
+        let currentDivision = authorizedDivisions[0];
+        if (activeDivisionId) {
+          const found = authorizedDivisions.find((d) => d.id === activeDivisionId);
+          if (!found && !memUser.isSuperAdmin) {
+            throw new ForbiddenException('User is not authorized for the requested active division');
+          }
+          currentDivision = found || currentDivision;
+        }
+        request.user = {
+          id: memUser.id,
+          username: memUser.username,
+          full_name: memUser.fullName,
+          mobile_number: memUser.mobileNumber,
+          status: memUser.status,
+          is_super_admin: memUser.isSuperAdmin,
+          primary_division: memUser.primaryDivision,
+          authorized_divisions: authorizedDivisions,
+          roles: memUser.roles?.map((r) => r.name) || ['Division User'],
+          permissions: memUser.permissions || ['parameters.pincode.view'],
+          active_division_id: currentDivision?.id,
+          is_ho_active: !!currentDivision?.is_ho,
+        } as AuthUser;
+        return true;
+      }
     }
 
     const token = authHeader.split(' ')[1];
@@ -127,8 +172,7 @@ export class JwtAuthGuard implements CanActivate {
     if (profile.is_super_admin) {
       const { data: allDivisions } = await supabase
         .from('divisions')
-        .select('id, name, code, is_ho')
-        .eq('is_active', true);
+        .select('id, name, code, is_ho');
       finalAuthorizedDivisions = allDivisions || [];
     }
 

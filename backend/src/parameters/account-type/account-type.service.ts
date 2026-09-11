@@ -8,6 +8,7 @@ import {
 import { SupabaseService } from '../../supabase/supabase.service';
 import { AuthUser } from '../../common/interfaces/auth-user.interface';
 import { ParameterDivisionService } from '../../common/services/parameter-division.service';
+import { AuditService } from '../../common/services/audit.service';
 import { CreateAccountTypeDto } from './dto/create-account-type.dto';
 import { UpdateAccountTypeDto } from './dto/update-account-type.dto';
 
@@ -37,6 +38,7 @@ export class AccountTypeService {
   constructor(
     private readonly supabaseService: SupabaseService,
     private readonly parameterDivisionService: ParameterDivisionService,
+    private readonly auditService: AuditService,
   ) {}
 
   /**
@@ -428,7 +430,22 @@ export class AccountTypeService {
       dto.assignedDivisionIds || [],
     );
 
-    return this.getAccountTypeById(newId);
+    const createdRecord = await this.getAccountTypeById(newId);
+
+    await this.auditService.logAction({
+      entityType: 'account_types',
+      entityId: createdRecord.id,
+      action: 'CREATE',
+      user,
+      changes: {
+        accountType: createdRecord.accountType,
+        shortName: createdRecord.shortName,
+        description: createdRecord.description,
+        assignedDivisions: createdRecord.assignedDivisions.map((d) => d.name),
+      },
+    });
+
+    return createdRecord;
   }
 
   private async createAccountTypeFallback(
@@ -543,7 +560,35 @@ export class AccountTypeService {
       await this.assignDivisions(id, dto.assignedDivisionIds, user);
     }
 
-    return this.getAccountTypeById(id);
+    const updatedRecord = await this.getAccountTypeById(id);
+
+    const diffs = this.auditService.computeFieldDiffs(
+      existing as any,
+      {
+        accountType: dto.accountType,
+        shortName: dto.shortName,
+        description: dto.description,
+        isActive: dto.isActive,
+      },
+      {
+        accountType: 'Account Type',
+        shortName: 'Short Name',
+        description: 'Description',
+        isActive: 'Status',
+      },
+    );
+
+    if (Object.keys(diffs).length > 0) {
+      await this.auditService.logAction({
+        entityType: 'account_types',
+        entityId: id,
+        action: 'UPDATE',
+        user,
+        changes: diffs,
+      });
+    }
+
+    return updatedRecord;
   }
 
   private async updateAccountTypeFallback(
@@ -579,6 +624,21 @@ export class AccountTypeService {
     user: AuthUser,
   ): Promise<{ message: string; id: string }> {
     await this.updateAccountType(id, { isActive: false }, user);
+
+    await this.auditService.logAction({
+      entityType: 'account_types',
+      entityId: id,
+      action: 'DEACTIVATE',
+      user,
+      changes: {
+        status: {
+          label: 'Status',
+          before: 'Active',
+          after: 'Deactivated',
+        },
+      },
+    });
+
     return {
       message: 'Account Type deactivated in database (Soft Deleted).',
       id,
@@ -592,7 +652,23 @@ export class AccountTypeService {
     id: string,
     user: AuthUser,
   ): Promise<AccountTypeRecord> {
-    return this.updateAccountType(id, { isActive: true }, user);
+    const res = await this.updateAccountType(id, { isActive: true }, user);
+
+    await this.auditService.logAction({
+      entityType: 'account_types',
+      entityId: id,
+      action: 'ACTIVATE',
+      user,
+      changes: {
+        status: {
+          label: 'Status',
+          before: 'Deactivated',
+          after: 'Active',
+        },
+      },
+    });
+
+    return res;
   }
 
   /**
@@ -605,7 +681,7 @@ export class AccountTypeService {
     const supabase = this.supabaseService.getClient();
 
     // Verify existence
-    await this.getAccountTypeById(id);
+    const snapshot = await this.getAccountTypeById(id);
 
     // Delete relationships & record
     await supabase.from('account_type_divisions').delete().eq('account_type_id', id);
@@ -617,6 +693,19 @@ export class AccountTypeService {
       const idx = records.findIndex((r) => r.id === id);
       if (idx !== -1) records.splice(idx, 1);
     }
+
+    await this.auditService.logAction({
+      entityType: 'account_types',
+      entityId: id,
+      action: 'DELETE',
+      user,
+      changes: {
+        accountType: snapshot.accountType,
+        shortName: snapshot.shortName,
+        description: snapshot.description,
+        note: 'Record permanently deleted from database',
+      },
+    });
 
     return {
       message: 'Account Type permanently deleted from database.',
@@ -633,7 +722,17 @@ export class AccountTypeService {
     user: AuthUser,
   ): Promise<AccountTypeRecord> {
     // Verify record exists
-    await this.getAccountTypeById(id);
+    const existing = await this.getAccountTypeById(id);
+
+    const supabase = this.supabaseService.getClient();
+    const { data: divData } = await supabase.from('divisions').select('id, name');
+    const allDivs = divData || [];
+
+    const divisionDiff = this.auditService.computeDivisionAssignmentDiff(
+      existing.assignedDivisions,
+      divisionIds,
+      allDivs,
+    );
 
     try {
       await this.parameterDivisionService.syncDivisionAssignments(
@@ -644,6 +743,22 @@ export class AccountTypeService {
     } catch (err: any) {
       this.logger.warn(`Supabase assign error: ${err.message}. Using fallback.`);
       return this.assignDivisionsFallback(id, divisionIds, user);
+    }
+
+    if (divisionDiff.added.length > 0 || divisionDiff.removed.length > 0) {
+      await this.auditService.logAction({
+        entityType: 'account_types',
+        entityId: id,
+        action: 'ASSIGN_DIVISIONS',
+        user,
+        changes: {
+          assignedDivisions: {
+            label: 'Assigned Divisions',
+            added: divisionDiff.added,
+            removed: divisionDiff.removed,
+          },
+        },
+      });
     }
 
     return this.getAccountTypeById(id);

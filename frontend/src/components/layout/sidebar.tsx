@@ -9,31 +9,60 @@ import {
   Building2,
   ChevronRight,
   Sparkles,
+  Settings,
+  Layers,
+  ShieldCheck,
+  Users,
 } from 'lucide-react';
 import { useSidebarStore } from '../../stores/sidebar-store';
 import { useErpContextStore } from '../../stores/context-store';
+import { useAuthStore } from '../../stores/auth-store';
 
 interface NavItem {
   title: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   matchPrefix?: string;
+  requiredPermission?: string | string[];
 }
 
-// Sidebar navigation: ONLY Masters and Parameters.
-// Forms like Pincode are accessed strictly inside the Parameters page.
-const NAV_ITEMS: NavItem[] = [
+// Work Navigation
+const WORK_ITEMS: NavItem[] = [
   {
     title: 'Masters',
     href: '/masters',
     icon: Database,
     matchPrefix: '/masters',
+    requiredPermission: ['masters.party.view', 'masters.item.view'],
   },
   {
     title: 'Parameters',
     href: '/parameters',
     icon: SlidersHorizontal,
     matchPrefix: '/parameters',
+    requiredPermission: ['parameters.pincode.view', 'parameters.account_type.view'],
+  },
+];
+
+// Settings Navigation: display label strictly "Form Access" as requested
+const SETTINGS_ITEMS: NavItem[] = [
+  {
+    title: 'Form Access',
+    href: '/settings/form-access',
+    icon: Layers,
+    matchPrefix: '/settings/form-access',
+  },
+  {
+    title: 'Role & Rights',
+    href: '/settings/roles',
+    icon: ShieldCheck,
+    matchPrefix: '/settings/roles',
+  },
+  {
+    title: 'Users',
+    href: '/settings/users',
+    icon: Users,
+    matchPrefix: '/settings/users',
   },
 ];
 
@@ -41,6 +70,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const { isCollapsed, isMobileOpen, setMobileOpen } = useSidebarStore();
   const { activeDivision, isHoActive } = useErpContextStore();
+  const { user, hasPermission } = useAuthStore();
   const [isMounted, setIsMounted] = React.useState(false);
 
   React.useEffect(() => {
@@ -49,6 +79,18 @@ export function Sidebar() {
 
   const currentDivision = isMounted ? activeDivision : null;
   const currentIsHoActive = isMounted ? isHoActive : false;
+  const isSuperAdmin = Boolean(user?.is_super_admin);
+  const canManageSettings = isMounted && (isSuperAdmin || hasPermission('users.manage') || hasPermission('roles.manage'));
+
+  const visibleWorkItems = WORK_ITEMS.filter((item) => {
+    if (!isMounted) return true;
+    if (isSuperAdmin) return true;
+    if (!item.requiredPermission) return true;
+    if (Array.isArray(item.requiredPermission)) {
+      return item.requiredPermission.some((perm) => hasPermission(perm));
+    }
+    return hasPermission(item.requiredPermission);
+  });
 
   return (
     <>
@@ -102,16 +144,17 @@ export function Sidebar() {
           </div>
         )}
 
-        {/* Sidebar Navigation: ONLY Masters and Parameters */}
-        <nav className="flex-1 overflow-y-auto p-3 space-y-2">
-          {!isCollapsed && (
-            <div className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80">
-              WORK
-            </div>
-          )}
-
+        {/* Sidebar Navigation */}
+        <nav className="flex-1 overflow-y-auto p-3 space-y-3">
+          {/* Work Section */}
           <div className="space-y-1">
-            {NAV_ITEMS.map((item) => {
+            {!isCollapsed && (
+              <div className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80">
+                WORK
+              </div>
+            )}
+
+            {visibleWorkItems.map((item) => {
               const isActive = item.matchPrefix
                 ? pathname.startsWith(item.matchPrefix)
                 : pathname === item.href;
@@ -145,6 +188,51 @@ export function Sidebar() {
               );
             })}
           </div>
+
+          {/* Settings / Administration Section */}
+          {canManageSettings && (
+            <div className="space-y-1 pt-2 border-t border-border/60">
+              {!isCollapsed && (
+                <div className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80">
+                  SETTINGS
+                </div>
+              )}
+
+              {SETTINGS_ITEMS.map((item) => {
+                const isActive = item.matchPrefix
+                  ? pathname.startsWith(item.matchPrefix)
+                  : pathname === item.href;
+                const Icon = item.icon;
+
+                return (
+                  <Link
+                    key={item.title}
+                    href={item.href}
+                    onClick={() => setMobileOpen(false)}
+                    title={isCollapsed ? item.title : undefined}
+                    className={`group flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-semibold transition-all ${
+                      isActive
+                        ? 'bg-primary text-primary-foreground shadow-md'
+                        : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                    } ${isCollapsed ? 'justify-center px-0' : ''}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon
+                        className={`w-4 h-4 shrink-0 ${
+                          isActive ? 'text-primary-foreground' : 'text-muted-foreground group-hover:text-foreground'
+                        }`}
+                      />
+                      {!isCollapsed && <span>{item.title}</span>}
+                    </div>
+
+                    {!isCollapsed && isActive && (
+                      <ChevronRight className="w-3.5 h-3.5 opacity-80" />
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </nav>
 
         {/* Brand System Info */}

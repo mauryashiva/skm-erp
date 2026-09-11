@@ -1,6 +1,7 @@
-import { Controller, Get, Patch, Param, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Patch, Delete, Param, Body, Query, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { AssignUserDivisionsDto } from './dto/assign-user-divisions.dto';
 import { AssignUserRolesDto } from './dto/assign-user-roles.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -12,10 +13,25 @@ import { RequirePermissions } from '../common/decorators/permissions.decorator';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  @Get('roles')
+  @RequirePermissions('users.manage')
+  async listRoles() {
+    return this.usersService.listRoles();
+  }
+
   @Get()
   @RequirePermissions('users.manage')
   async listUsers(@Query('status') status?: string) {
     return this.usersService.listUsers(status);
+  }
+
+  @Patch(':id')
+  @RequirePermissions('users.manage')
+  async updateUser(
+    @Param('id') id: string,
+    @Body() dto: UpdateUserDto,
+  ) {
+    return this.usersService.updateUser(id, dto);
   }
 
   @Patch(':id/status')
@@ -43,5 +59,11 @@ export class UsersController {
     @Body() dto: AssignUserRolesDto,
   ) {
     return this.usersService.assignRoles(id, dto.roleIds);
+  }
+
+  @Delete(':id')
+  @RequirePermissions('users.manage')
+  async deleteUser(@Param('id') id: string) {
+    return this.usersService.deleteUser(id);
   }
 }

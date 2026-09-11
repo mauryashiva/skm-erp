@@ -46,6 +46,56 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
   }, [isAuthPage, isAuthenticated, router, setAvailableDivisions, setAvailableFinancialYears]);
 
+  // Real-time synchronization of authorized divisions across tabs and user updates
+  React.useEffect(() => {
+    if (!isAuthenticated || !user?.id) return;
+
+    const handleDivisionSync = async (eventDetail?: { userId: string; divisions?: Division[] }) => {
+      // Only process if for current user (or no specific user filter)
+      if (eventDetail?.userId && eventDetail.userId !== user.id) return;
+
+      try {
+        if (eventDetail?.divisions && eventDetail.divisions.length > 0) {
+          setAvailableDivisions(eventDetail.divisions);
+          useAuthStore.getState().updateUser({ authorized_divisions: eventDetail.divisions });
+        } else {
+          const freshDivs = await api.get<Division[]>('/divisions');
+          if (Array.isArray(freshDivs) && freshDivs.length > 0) {
+            setAvailableDivisions(freshDivs);
+            useAuthStore.getState().updateUser({ authorized_divisions: freshDivs });
+          }
+        }
+      } catch (err) {
+        console.warn('Real-time division sync error:', err);
+      }
+    };
+
+    // 1. In-tab custom window event
+    const onCustomEvent = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      handleDivisionSync(customEvent.detail);
+    };
+    window.addEventListener('skm:divisions-updated', onCustomEvent);
+
+    // 2. Cross-tab BroadcastChannel
+    let channel: BroadcastChannel | null = null;
+    try {
+      channel = new BroadcastChannel('skm_erp_division_sync');
+      channel.onmessage = (msg) => {
+        if (msg.data?.type === 'DIVISIONS_UPDATED') {
+          handleDivisionSync(msg.data);
+        }
+      };
+    } catch {
+      // BroadcastChannel fallback if unsupported
+    }
+
+    return () => {
+      window.removeEventListener('skm:divisions-updated', onCustomEvent);
+      if (channel) channel.close();
+    };
+  }, [isAuthenticated, user?.id, setAvailableDivisions]);
+
   if (isAuthPage) {
     return <main className="min-h-screen w-full">{children}</main>;
   }

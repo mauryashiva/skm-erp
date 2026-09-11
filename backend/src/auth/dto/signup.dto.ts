@@ -1,9 +1,19 @@
-import { IsNotEmpty, IsString, MinLength, Matches } from 'class-validator';
+import { IsNotEmpty, IsString, MinLength, IsEmail, IsIn } from 'class-validator';
 
 export class SignupDto {
   @IsNotEmpty({ message: 'Full name is required' })
   @IsString()
   fullName: string;
+
+  @IsNotEmpty({ message: 'Email ID is required' })
+  @IsEmail({}, { message: 'Please provide a valid Email ID' })
+  @IsString()
+  email: string;
+
+  @IsNotEmpty({ message: 'Gender is required' })
+  @IsIn(['Male', 'Female'], { message: 'Gender must be either Male or Female' })
+  @IsString()
+  gender: string;
 
   @IsNotEmpty({ message: 'Username is required' })
   @IsString()
@@ -27,3 +37,4 @@ export class SignupDto {
   @IsString()
   confirmPassword: string;
 }
+

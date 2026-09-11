@@ -7,6 +7,7 @@ import { useErpContextStore } from '../../stores/context-store';
 import { PincodeRecord, AccountTypeRecord } from '../../types';
 import { useRealtimePincodes } from '../../hooks/use-realtime-pincodes';
 import { useRealtimeAccountTypes } from '../../hooks/use-realtime-account-types';
+import { useAuthStore } from '../../stores/auth-store';
 import { MapPin, Tag, ChevronRight, SlidersHorizontal, ArrowRight } from 'lucide-react';
 
 export default function ParametersPage() {
@@ -81,6 +82,11 @@ export default function ParametersPage() {
     fetchAccountTypeCount();
   });
 
+  const { user, hasPermission } = useAuthStore();
+  const canViewPincode = !isMounted || Boolean(user?.is_super_admin) || hasPermission('parameters.pincode.view');
+  const canViewAccountType = !isMounted || Boolean(user?.is_super_admin) || hasPermission('parameters.account_type.view');
+  const availableFormsCount = (canViewPincode ? 1 : 0) + (canViewAccountType ? 1 : 0);
+
   const currentDivisionName = isMounted
     ? activeDivision?.name || 'SKM STEELS LIMITED (HO)'
     : 'SKM STEELS LIMITED (HO)';
@@ -129,74 +135,78 @@ export default function ParametersPage() {
       <div className="min-w-0">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            Available Parameter Forms (2)
+            Available Parameter Forms ({availableFormsCount})
           </h2>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 min-w-0">
           {/* PINCODE */}
-          <Link
-            href="/parameters/pincode"
-            className="group relative flex flex-col justify-between p-5 rounded-2xl border border-border bg-card hover:border-indigo-500/50 hover:shadow-md transition-all duration-200 cursor-pointer"
-          >
-            <div>
-              <div className="flex items-center justify-between gap-2 mb-3">
-                <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-sm">
-                  <MapPin className="w-5 h-5" />
+          {canViewPincode && (
+            <Link
+              href="/parameters/pincode"
+              className="group relative flex flex-col justify-between p-5 rounded-2xl border border-border bg-card hover:border-indigo-500/50 hover:shadow-md transition-all duration-200 cursor-pointer"
+            >
+              <div>
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-sm">
+                    <MapPin className="w-5 h-5" />
+                  </div>
+                  <span
+                    className="text-xs font-bold font-mono px-2.5 py-1 rounded-md bg-secondary text-muted-foreground"
+                    suppressHydrationWarning
+                  >
+                    {!isMounted || isLoading ? '...' : `${pincodeCount ?? 0} Records`}
+                  </span>
                 </div>
-                <span
-                  className="text-xs font-bold font-mono px-2.5 py-1 rounded-md bg-secondary text-muted-foreground"
-                  suppressHydrationWarning
-                >
-                  {!isMounted || isLoading ? '...' : `${pincodeCount ?? 0} Records`}
-                </span>
+
+                <h3 className="text-base font-bold text-foreground group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                  Pincode
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                  Authoritative postal codes with automated geographic lookup and multi-division assignment.
+                </p>
               </div>
 
-              <h3 className="text-base font-bold text-foreground group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                Pincode
-              </h3>
-              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                Authoritative postal codes with automated geographic lookup and multi-division assignment.
-              </p>
-            </div>
-
-            <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between text-xs font-semibold text-indigo-600 dark:text-indigo-400">
-              <span>Open Pincode Page</span>
-              <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
-            </div>
-          </Link>
+              <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between text-xs font-semibold text-indigo-600 dark:text-indigo-400">
+                <span>Open Pincode Page</span>
+                <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
+              </div>
+            </Link>
+          )}
 
           {/* ACCOUNT TYPE */}
-          <Link
-            href="/parameters/account-type"
-            className="group relative flex flex-col justify-between p-5 rounded-2xl border border-border bg-card hover:border-indigo-500/50 hover:shadow-md transition-all duration-200 cursor-pointer"
-          >
-            <div>
-              <div className="flex items-center justify-between gap-2 mb-3">
-                <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-sm">
-                  <Tag className="w-5 h-5" />
+          {canViewAccountType && (
+            <Link
+              href="/parameters/account-type"
+              className="group relative flex flex-col justify-between p-5 rounded-2xl border border-border bg-card hover:border-indigo-500/50 hover:shadow-md transition-all duration-200 cursor-pointer"
+            >
+              <div>
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-sm">
+                    <Tag className="w-5 h-5" />
+                  </div>
+                  <span
+                    className="text-xs font-bold font-mono px-2.5 py-1 rounded-md bg-secondary text-muted-foreground"
+                    suppressHydrationWarning
+                  >
+                    {!isMounted || isAccountTypeLoading ? '...' : `${accountTypeCount ?? 0} Records`}
+                  </span>
                 </div>
-                <span
-                  className="text-xs font-bold font-mono px-2.5 py-1 rounded-md bg-secondary text-muted-foreground"
-                  suppressHydrationWarning
-                >
-                  {!isMounted || isAccountTypeLoading ? '...' : `${accountTypeCount ?? 0} Records`}
-                </span>
+
+                <h3 className="text-base font-bold text-foreground group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                  Account Type
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                  Authoritative financial account classifications with multi-division copy and assignment.
+                </p>
               </div>
 
-              <h3 className="text-base font-bold text-foreground group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                Account Type
-              </h3>
-              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                Authoritative financial account classifications with multi-division copy and assignment.
-              </p>
-            </div>
-
-            <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between text-xs font-semibold text-indigo-600 dark:text-indigo-400">
-              <span>Open Account Type Page</span>
-              <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
-            </div>
-          </Link>
+              <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between text-xs font-semibold text-indigo-600 dark:text-indigo-400">
+                <span>Open Account Type Page</span>
+                <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
+              </div>
+            </Link>
+          )}
         </div>
       </div>
     </div>
