@@ -4,6 +4,7 @@ import * as React from 'react';
 import { PincodeRecord, Division } from '../../types';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
+import { StatusBadge } from '../ui/status-badge';
 import {
   Search,
   Plus,
@@ -322,17 +323,7 @@ export function PincodeTable({
 
                     {/* STATUS */}
                     <td className="px-5 py-3.5 whitespace-nowrap">
-                      {record.isActive ? (
-                        <Badge variant="success" className="gap-1 shrink-0">
-                          <CheckCircle2 className="w-3 h-3" />
-                          <span>Active</span>
-                        </Badge>
-                      ) : (
-                        <Badge variant="destructive" className="gap-1 shrink-0">
-                          <XCircle className="w-3 h-3" />
-                          <span>Deactivated</span>
-                        </Badge>
-                      )}
+                      <StatusBadge isActive={record.isActive} />
                     </td>
 
                     {/* ACTIONS */}
