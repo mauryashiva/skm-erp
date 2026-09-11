@@ -23,6 +23,7 @@ import {
 import { PincodeModal } from './pincode-modal';
 import { PincodeAssignModal } from './pincode-assign-modal';
 import { TableFilterToolbar } from '../shared/table-filter-toolbar';
+import { TableActionsGroup } from '../shared/table-actions-group';
 import { api } from '../../lib/api';
 import { toast } from 'sonner';
 import { useErpContextStore } from '../../stores/context-store';
@@ -328,60 +329,19 @@ export function PincodeTable({
 
                     {/* ACTIONS */}
                     <td className="erp-sticky-col px-5 py-3.5 text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-1.5 shrink-0">
-                        {canAssign && (
-                          <button
-                            onClick={() => handleAssign(record)}
-                            className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-indigo-600 transition-colors cursor-pointer"
-                            title="Assign to Divisions"
-                          >
-                            <Share2 className="w-4 h-4" />
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleView(record)}
-                          className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                          title="View Record Details"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        {canEdit && (
-                          <button
-                            onClick={() => handleEdit(record)}
-                            className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                            title="Edit Record"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                        )}
-                        {canDelete && record.isActive && (
-                          <button
-                            onClick={() => handleDeactivate(record)}
-                            className="p-1.5 rounded-lg hover:bg-amber-500/10 text-muted-foreground hover:text-amber-600 transition-colors cursor-pointer"
-                            title="Deactivate Record (Soft Delete)"
-                          >
-                            <PowerOff className="w-4 h-4" />
-                          </button>
-                        )}
-                        {canEdit && !record.isActive && (
-                          <button
-                            onClick={() => handleActivate(record)}
-                            className="p-1.5 rounded-lg hover:bg-emerald-500/10 text-muted-foreground hover:text-emerald-600 transition-colors cursor-pointer"
-                            title="Activate Record"
-                          >
-                            <RotateCcw className="w-4 h-4" />
-                          </button>
-                        )}
-                        {canDelete && (
-                          <button
-                            onClick={() => handleDelete(record)}
-                            className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
-                            title="Permanently Delete Record"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
+                      <TableActionsGroup
+                        isActive={record.isActive}
+                        canEdit={canEdit}
+                        canDelete={canDelete}
+                        canAssign={canAssign}
+                        isHoActive={isHoActive}
+                        onView={() => handleView(record)}
+                        onEdit={() => handleEdit(record)}
+                        onAssign={() => handleAssign(record)}
+                        onDeactivate={() => handleDeactivate(record)}
+                        onActivate={() => handleActivate(record)}
+                        onDelete={() => handleDelete(record)}
+                      />
                     </td>
                   </tr>
                 ))
