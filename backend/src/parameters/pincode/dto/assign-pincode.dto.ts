@@ -1,7 +1,3 @@
-import { IsArray, IsNotEmpty } from 'class-validator';
+import { AssignDivisionsDto } from '../../../common/dto/assign-divisions.dto';
 
-export class AssignPincodeDto {
-  @IsNotEmpty({ message: 'Division IDs list cannot be empty' })
-  @IsArray()
-  divisionIds: string[];
-}
+export class AssignPincodeDto extends AssignDivisionsDto {}
