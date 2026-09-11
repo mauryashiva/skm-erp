@@ -200,7 +200,7 @@ export function PincodeTable({
         onActiveOnlyChange={handleActiveToggle}
         deactivatedOnly={deactivatedOnly}
         onDeactivatedOnlyChange={handleDeactivatedToggle}
-        showDeactivatedToggle={isHoActive}
+        showDeactivatedToggle={true}
         deactivatedLabel="Deactivated Only"
         filteredCount={filteredPincodes.length}
         totalCount={pincodes.length}
