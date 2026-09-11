@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { PincodeModal } from './pincode-modal';
 import { PincodeAssignModal } from './pincode-assign-modal';
+import { TableFilterToolbar } from '../shared/table-filter-toolbar';
 import { api } from '../../lib/api';
 import { toast } from 'sonner';
 import { useErpContextStore } from '../../stores/context-store';
@@ -53,13 +54,29 @@ export function PincodeTable({
   const { activeDivision } = useErpContextStore();
   const [search, setSearch] = React.useState('');
   const [activeOnly, setActiveOnly] = React.useState(false);
+  const [deactivatedOnly, setDeactivatedOnly] = React.useState(false);
   const [modalOpen, setModalOpen] = React.useState(false);
   const [assignModalOpen, setAssignModalOpen] = React.useState(false);
   const [selectedRecord, setSelectedRecord] = React.useState<PincodeRecord | null>(null);
   const [isViewOnly, setIsViewOnly] = React.useState(false);
 
+  const handleActiveToggle = (checked: boolean) => {
+    setActiveOnly(checked);
+    if (checked) {
+      setDeactivatedOnly(false);
+    }
+  };
+
+  const handleDeactivatedToggle = (checked: boolean) => {
+    setDeactivatedOnly(checked);
+    if (checked) {
+      setActiveOnly(false);
+    }
+  };
+
   const filteredPincodes = pincodes.filter((p) => {
     if (activeOnly && !p.isActive) return false;
+    if (deactivatedOnly && p.isActive) return false;
 
     // Child divisions must ONLY see pincodes assigned to their active division
     if (!isHoActive && activeDivision?.id) {
@@ -172,44 +189,26 @@ export function PincodeTable({
 
   return (
     <div className="space-y-4 w-full min-w-0">
-      {/* Top Search & Actions Bar */}
-      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-card p-3.5 sm:p-4 rounded-xl border border-border min-w-0">
-        <div className="relative flex-1 min-w-[220px] max-w-md">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-          <input
-            type="text"
-            placeholder="Search pincode, city, district, state, area, post office..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-input bg-card text-foreground placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
-          />
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-between sm:justify-end shrink-0">
-          {isHoActive && (
-            <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={!activeOnly}
-                onChange={(e) => setActiveOnly(!e.target.checked)}
-                className="rounded-xs border-border text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5 cursor-pointer"
-              />
-              <span>Show Deactivated</span>
-            </label>
-          )}
-
-          {/* CREATE PINCODE BUTTON — ONLY VISIBLE WHEN AUTHORIZED (HO + CREATE PERMISSION) */}
-          {canCreate && (
-            <Button
-              onClick={handleCreate}
-              className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm px-4 py-2 text-xs font-semibold rounded-xl cursor-pointer shrink-0"
-            >
-              <Plus className="w-4 h-4" />
-              <span>+ Create Pincode</span>
-            </Button>
-          )}
-        </div>
-      </div>
+      {/* Shared Reusable Toolbar */}
+      <TableFilterToolbar
+        search={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search pincode, city, district, state, area, post office..."
+        activeOnly={activeOnly}
+        onActiveOnlyChange={handleActiveToggle}
+        deactivatedOnly={deactivatedOnly}
+        onDeactivatedOnlyChange={handleDeactivatedToggle}
+        showDeactivatedToggle={isHoActive}
+        deactivatedLabel="Deactivated Only"
+        filteredCount={filteredPincodes.length}
+        totalCount={pincodes.length}
+        canCreate={canCreate}
+        onCreateClick={handleCreate}
+        createButtonLabel="Create Pincode"
+        onRefresh={onRefresh}
+        isLoading={isLoading}
+        isHoActive={isHoActive}
+      />
 
       {/* Real Pincode Table */}
       <div className="w-full min-w-0 rounded-2xl border border-border bg-card shadow-xs overflow-hidden">
