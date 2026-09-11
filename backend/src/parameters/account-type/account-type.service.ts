@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { SupabaseService } from '../../supabase/supabase.service';
 import { AuthUser } from '../../common/interfaces/auth-user.interface';
+import { ParameterDivisionService } from '../../common/services/parameter-division.service';
 import { CreateAccountTypeDto } from './dto/create-account-type.dto';
 import { UpdateAccountTypeDto } from './dto/update-account-type.dto';
 
@@ -33,7 +34,10 @@ export class AccountTypeService {
   private readonly logger = new Logger(AccountTypeService.name);
   private memoryStore: AccountTypeRecord[] | null = null;
 
-  constructor(private readonly supabaseService: SupabaseService) {}
+  constructor(
+    private readonly supabaseService: SupabaseService,
+    private readonly parameterDivisionService: ParameterDivisionService,
+  ) {}
 
   /**
    * Initialize in-memory fallback store if Supabase table is not yet migrated.
@@ -418,26 +422,11 @@ export class AccountTypeService {
 
     const newId = inserted.id;
 
-    // Retrieve all divisions to validate and ensure HO is included
-    const { data: allDivisions } = await supabase
-      .from('divisions')
-      .select('id, is_ho');
-
-    const hoDivision = (allDivisions || []).find((d: any) => d.is_ho);
-    const assignedIds = new Set<string>(dto.assignedDivisionIds || []);
-
-    if (hoDivision) {
-      assignedIds.add(hoDivision.id);
-    }
-
-    if (assignedIds.size > 0) {
-      const assignmentRows = Array.from(assignedIds).map((divId) => ({
-        account_type_id: newId,
-        division_id: divId,
-      }));
-
-      await supabase.from('account_type_divisions').insert(assignmentRows);
-    }
+    await this.parameterDivisionService.syncDivisionAssignments(
+      'account_types',
+      newId,
+      dto.assignedDivisionIds || [],
+    );
 
     return this.getAccountTypeById(newId);
   }
@@ -643,42 +632,18 @@ export class AccountTypeService {
     divisionIds: string[],
     user: AuthUser,
   ): Promise<AccountTypeRecord> {
-    const supabase = this.supabaseService.getClient();
-
     // Verify record exists
     await this.getAccountTypeById(id);
 
-    // HO must always remain assigned
-    const { data: hoDiv } = await supabase
-      .from('divisions')
-      .select('id')
-      .eq('is_ho', true)
-      .maybeSingle();
-
-    const finalDivIds = new Set(divisionIds || []);
-    if (hoDiv) {
-      finalDivIds.add(hoDiv.id);
-    }
-
-    // Remove old assignments
-    const { error: deleteError } = await supabase
-      .from('account_type_divisions')
-      .delete()
-      .eq('account_type_id', id);
-
-    if (deleteError) {
-      this.logger.warn(`Supabase assign delete error: ${deleteError.message}. Using fallback.`);
+    try {
+      await this.parameterDivisionService.syncDivisionAssignments(
+        'account_types',
+        id,
+        divisionIds,
+      );
+    } catch (err: any) {
+      this.logger.warn(`Supabase assign error: ${err.message}. Using fallback.`);
       return this.assignDivisionsFallback(id, divisionIds, user);
-    }
-
-    // Insert new assignments
-    const insertRows = Array.from(finalDivIds).map((divId) => ({
-      account_type_id: id,
-      division_id: divId,
-    }));
-
-    if (insertRows.length > 0) {
-      await supabase.from('account_type_divisions').insert(insertRows);
     }
 
     return this.getAccountTypeById(id);

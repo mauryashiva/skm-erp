@@ -7,6 +7,7 @@ import {
 
 import { SupabaseService } from '../../supabase/supabase.service';
 import { AuthUser } from '../../common/interfaces/auth-user.interface';
+import { ParameterDivisionService } from '../../common/services/parameter-division.service';
 import { CreatePincodeDto } from './dto/create-pincode.dto';
 import { UpdatePincodeDto } from './dto/update-pincode.dto';
 
@@ -43,7 +44,6 @@ type PincodeLocationFields = {
   countryCode?: string;
   area?: string;
   postOffice?: string;
-  assignedDivisionIds?: string[];
 };
 
 type CreatePincodeServiceDto =
@@ -61,6 +61,7 @@ export class PincodeService {
 
   constructor(
     private readonly supabaseService: SupabaseService,
+    private readonly parameterDivisionService: ParameterDivisionService,
   ) { }
 
   /**
@@ -381,68 +382,13 @@ export class PincodeService {
      *
      * No duplicate Pincode rows are created.
      */
-    const assignedIds =
-      new Set<string>(
-        dto.assignedDivisionIds ||
-        [],
-      );
-
-    /*
-     * HO must always have access.
-     */
-    const {
-      data: hoDiv,
-    } = await supabase
-      .from('divisions')
-      .select('id')
-      .eq(
-        'is_ho',
-        true,
-      )
-      .limit(1)
-      .maybeSingle();
-
-    if (hoDiv) {
-      assignedIds.add(
-        hoDiv.id,
-      );
-    }
-
-    const assignments =
-      Array.from(
-        assignedIds,
-      ).map(
-        (divisionId) => ({
-          pincode_id:
-            pincodeRow.id,
-          division_id:
-            divisionId,
-        }),
-      );
-
-    if (
-      assignments.length > 0
-    ) {
-      const {
-        error: assignErr,
-      } = await supabase
-        .from(
-          'pincode_divisions',
-        )
-        .insert(
-          assignments,
-        );
-
-      if (assignErr) {
-        this.logger.warn(
-          `Could not save division assignments: ${assignErr.message}`,
-        );
-      }
-    }
-
-    return this.getPincodeById(
+    await this.parameterDivisionService.syncDivisionAssignments(
+      'pincodes',
       pincodeRow.id,
+      dto.assignedDivisionIds || [],
     );
+
+    return this.getPincodeById(pincodeRow.id);
   }
 
   /**
@@ -677,122 +623,22 @@ export class PincodeService {
     divisionIds: string[],
     user: AuthUser,
   ): Promise<PincodeRecord> {
-    const supabase =
-      this.supabaseService.getClient();
+    // Verify record exists first
+    await this.getPincodeById(id);
 
-    /*
-     * Make sure the Pincode exists first.
-     */
-    const {
-      data: existingPincode,
-      error: pincodeError,
-    } =
-      await supabase
-        .from('pincodes')
-        .select('id')
-        .eq(
-          'id',
-          id,
-        )
-        .maybeSingle();
-
-    if (
-      pincodeError ||
-      !existingPincode
-    ) {
-      throw new NotFoundException(
-        'Pincode record not found.',
-      );
-    }
-
-    /*
-     * HO must always remain assigned.
-     */
-    const {
-      data: hoDiv,
-    } = await supabase
-      .from('divisions')
-      .select('id')
-      .eq(
-        'is_ho',
-        true,
-      )
-      .limit(1)
-      .maybeSingle();
-
-    const finalDivIds =
-      new Set(
-        divisionIds || [],
-      );
-
-    if (hoDiv) {
-      finalDivIds.add(
-        hoDiv.id,
-      );
-    }
-
-    /*
-     * Remove old assignments.
-     *
-     * This is what makes removing a division
-     * from "Copy To" immediately remove that
-     * division's access.
-     */
-    const {
-      error: deleteError,
-    } = await supabase
-      .from(
-        'pincode_divisions',
-      )
-      .delete()
-      .eq(
-        'pincode_id',
+    try {
+      await this.parameterDivisionService.syncDivisionAssignments(
+        'pincodes',
         id,
+        divisionIds,
       );
-
-    if (deleteError) {
+    } catch (err: any) {
       throw new BadRequestException(
-        `Failed to remove existing division assignments: ${deleteError.message}`,
+        `Failed to update division assignments: ${err.message}`,
       );
     }
 
-    /*
-     * Insert the new assignment relationships.
-     */
-    const insertRows =
-      Array.from(
-        finalDivIds,
-      ).map(
-        (divisionId) => ({
-          pincode_id: id,
-          division_id:
-            divisionId,
-        }),
-      );
-
-    if (
-      insertRows.length > 0
-    ) {
-      const {
-        error: insertError,
-      } = await supabase
-        .from(
-          'pincode_divisions',
-        )
-        .insert(
-          insertRows,
-        );
-
-      if (insertError) {
-        throw new BadRequestException(
-          `Failed to update division assignments: ${insertError.message}`,
-        );
-      }
-    }
-
-    return this.getPincodeById(
-      id,
-    );
+    return this.getPincodeById(id);
   }
 
   /**
