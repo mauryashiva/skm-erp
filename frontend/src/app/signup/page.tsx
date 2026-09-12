@@ -7,6 +7,7 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { api } from '../../lib/api';
 import { Division } from '../../types';
+import { PrimaryDivisionSelect } from '../../components/shared/primary-division-select';
 import {
   User,
   Mail,
@@ -59,6 +60,11 @@ export default function SignupPage() {
 
     if (!gender) {
       toast.error('Please select gender (Male or Female)');
+      return;
+    }
+
+    if (!divisionId) {
+      toast.error('Please select your primary division');
       return;
     }
 
@@ -275,21 +281,12 @@ export default function SignupPage() {
                 <label className="block text-xs font-semibold text-foreground mb-1">
                   Primary Division *
                 </label>
-                <div className="relative">
-                  <Building2 className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
-                  <select
-                    value={divisionId}
-                    onChange={(e) => setDivisionId(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-input bg-card text-foreground focus:ring-2 focus:ring-primary focus:outline-hidden"
-                    required
-                  >
-                    {divisions.map((div) => (
-                      <option key={div.id} value={div.id}>
-                        {div.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <PrimaryDivisionSelect
+                  allDivisions={divisions}
+                  selectedId={divisionId}
+                  onChange={setDivisionId}
+                  className="py-2.5 text-xs rounded-lg"
+                />
               </div>
             </div>
 

@@ -9,6 +9,7 @@ export interface PrimaryDivisionSelectProps {
   selectedId: string;
   onChange: (id: string) => void;
   disabled?: boolean;
+  className?: string;
 }
 
 export function PrimaryDivisionSelect({
@@ -16,6 +17,7 @@ export function PrimaryDivisionSelect({
   selectedId,
   onChange,
   disabled = false,
+  className = '',
 }: PrimaryDivisionSelectProps) {
   const [isOpen, setIsOpen] = React.useState(false);
   const [search, setSearch] = React.useState('');
@@ -74,7 +76,7 @@ export function PrimaryDivisionSelect({
           isOpen
             ? 'border-primary ring-2 ring-primary/20 bg-card'
             : 'border-input bg-card hover:bg-secondary/40'
-        } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+        } ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}
       >
         <div className="flex items-center gap-2 truncate">
           <Building2 className="w-3.5 h-3.5 text-primary shrink-0" />
