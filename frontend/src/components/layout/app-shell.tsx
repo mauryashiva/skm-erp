@@ -9,6 +9,8 @@ import { useAuthStore } from '../../stores/auth-store';
 import { useErpContextStore } from '../../stores/context-store';
 import { api } from '../../lib/api';
 import { Division, FinancialYear } from '../../types';
+import { getSharedRealtimeChannel } from '../../hooks/use-realtime-table';
+import { getSupabaseClient } from '../../lib/supabase/client';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -90,9 +92,48 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       // BroadcastChannel fallback if unsupported
     }
 
+    // 3. Multi-device Supabase Realtime WebSocket broadcast synchronization
+    const globalChannel = getSharedRealtimeChannel();
+    if (globalChannel) {
+      const onRealtimeDivisionUpdated = (msg: any) => {
+        const data = msg?.payload || msg;
+        if (data?.userId === user.id) {
+          handleDivisionSync(data);
+        }
+      };
+
+      globalChannel.on('broadcast', { event: 'DIVISIONS_UPDATED' }, onRealtimeDivisionUpdated);
+    }
+
+    // 4. PostgreSQL CDC subscription on user_divisions for current user
+    let cdcChannel: any = null;
+    try {
+      const supabase = getSupabaseClient();
+      cdcChannel = supabase
+        .channel(`user-divisions-sync-${user.id}-${Date.now()}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'user_divisions', filter: `user_id=eq.${user.id}` },
+          () => {
+            handleDivisionSync({ userId: user.id });
+          },
+        )
+        .subscribe();
+    } catch {
+      // ignore
+    }
+
     return () => {
       window.removeEventListener('skm:divisions-updated', onCustomEvent);
       if (channel) channel.close();
+      if (cdcChannel) {
+        try {
+          const supabase = getSupabaseClient();
+          supabase.removeChannel(cdcChannel);
+        } catch {
+          // ignore
+        }
+      }
     };
   }, [isAuthenticated, user?.id, setAvailableDivisions]);
 

@@ -126,6 +126,14 @@ export class AuthService {
       createdAt: new Date().toISOString(),
     });
 
+    // Notify all admin dashboards in real time across the ERP
+    this.supabaseService.broadcastEvent('USER_REGISTERED', {
+      userId,
+      username: normalizedUsername,
+      fullName: dto.fullName,
+      status: 'PENDING',
+    });
+
     return {
       message: 'Signup successful! Your account is currently PENDING review by the Administrator.',
       status: 'PENDING',

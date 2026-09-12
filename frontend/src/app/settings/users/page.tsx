@@ -5,6 +5,7 @@ import { api } from '../../../lib/api';
 import { Division } from '../../../types';
 import { DivisionMultiSelect } from '../../../components/shared/division-multi-select';
 import { PrimaryDivisionSelect } from '../../../components/shared/primary-division-select';
+import { useRealtimeTable, broadcastRealtimeEvent } from '../../../hooks/use-realtime-table';
 import { useAuthStore } from '../../../stores/auth-store';
 import { useErpContextStore } from '../../../stores/context-store';
 import {
@@ -82,17 +83,26 @@ export default function UsersManagementPage() {
   const [showNewPassword, setShowNewPassword] = React.useState(false);
   const [isUpdating, setIsUpdating] = React.useState(false);
 
-  const fetchUsers = React.useCallback(async () => {
-    setIsLoading(true);
+  const fetchUsers = React.useCallback(async (silent = false) => {
+    if (!silent) setIsLoading(true);
     try {
       const data = await api.get<ErpUserRecord[]>('/users');
       setUsers(Array.isArray(data) ? data : []);
     } catch (err: any) {
       console.warn('Load users fallback:', err);
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   }, []);
+
+  // Generic reusable real-time synchronization across the ERP
+  useRealtimeTable({
+    tableName: 'profiles',
+    junctionTableName: 'user_divisions',
+    broadcastEvents: ['USER_REGISTERED', 'USER_UPDATED', 'USER_DELETED', 'DIVISIONS_UPDATED'],
+    onDataChange: () => fetchUsers(true),
+    label: 'User Management',
+  });
 
   React.useEffect(() => {
     fetchUsers();
@@ -223,7 +233,16 @@ export default function UsersManagementPage() {
         });
       }
 
-      // 5. Broadcast real-time event across open tabs & header selector without page reload
+      // 5. Broadcast real-time event across all devices, open tabs & header selector without page reload
+      broadcastRealtimeEvent('DIVISIONS_UPDATED', {
+        userId: editUser.id,
+        divisions: assignedDivisions,
+      });
+      broadcastRealtimeEvent('USER_UPDATED', {
+        userId: editUser.id,
+        username: trimmedUsername,
+      });
+
       try {
         const syncChannel = new BroadcastChannel('skm_erp_division_sync');
         syncChannel.postMessage({
@@ -265,6 +284,7 @@ export default function UsersManagementPage() {
     setIsDeleting(true);
     try {
       await api.delete(`/users/${deleteTargetUser.id}`);
+      broadcastRealtimeEvent('USER_DELETED', { userId: deleteTargetUser.id });
       toast.success(`Employee @${deleteTargetUser.username} deleted successfully.`);
       setDeleteTargetUser(null);
       fetchUsers();

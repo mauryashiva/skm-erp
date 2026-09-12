@@ -48,4 +48,18 @@ export class SupabaseService {
       },
     });
   }
+
+  // Broadcast real-time system event to all connected ERP clients
+  async broadcastEvent(event: string, payload: any) {
+    try {
+      const channel = this.clientInstance.channel('skm_erp_global_realtime');
+      await channel.send({
+        type: 'broadcast',
+        event,
+        payload,
+      });
+    } catch (err: any) {
+      this.logger.debug(`Supabase broadcastEvent error: ${err.message}`);
+    }
+  }
 }

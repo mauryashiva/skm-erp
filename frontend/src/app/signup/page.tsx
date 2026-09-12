@@ -8,6 +8,7 @@ import { Input } from '../../components/ui/input';
 import { api } from '../../lib/api';
 import { Division } from '../../types';
 import { PrimaryDivisionSelect } from '../../components/shared/primary-division-select';
+import { broadcastRealtimeEvent } from '../../hooks/use-realtime-table';
 import {
   User,
   Mail,
@@ -87,6 +88,12 @@ export default function SignupPage() {
       });
 
       setIsSubmitted(true);
+      // Real-time broadcast to instantly update admin screens across all devices
+      broadcastRealtimeEvent('USER_REGISTERED', {
+        username: username.trim().toLowerCase(),
+        fullName: fullName.trim(),
+        divisionId,
+      });
       toast.success('Registration submitted! Status is PENDING admin review.');
     } catch (err: any) {
       toast.error(err.message || 'Registration failed');

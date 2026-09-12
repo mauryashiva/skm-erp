@@ -221,6 +221,8 @@ export class UsersService {
       }
     }
 
+    this.supabaseService.broadcastEvent('USER_UPDATED', { id, ...dto });
+
     return { message: 'User updated successfully', id, ...dto };
   }
 
@@ -246,6 +248,8 @@ export class UsersService {
         break;
       }
     }
+
+    this.supabaseService.broadcastEvent('USER_DELETED', { userId: id });
 
     return { message: 'User deleted successfully', id };
   }
@@ -335,6 +339,12 @@ export class UsersService {
         break;
       }
     }
+
+    this.supabaseService.broadcastEvent('DIVISIONS_UPDATED', {
+      userId,
+      divisionIds,
+      divisions: assignedDivisions,
+    });
 
     return {
       message: 'Authorized divisions assigned successfully',
