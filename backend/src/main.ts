@@ -14,11 +14,11 @@ async function bootstrap() {
   // Global prefix: /api/v1
   app.setGlobalPrefix('api/v1');
 
-  // Strict CORS configuration
+  // CORS configuration
   app.enableCors({
-    origin: [frontendUrl, 'http://localhost:3000', 'http://127.0.0.1:3000'],
+    origin: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-division-id', 'x-financial-year-id'],
+    allowedHeaders: '*',
     credentials: true,
   });
 

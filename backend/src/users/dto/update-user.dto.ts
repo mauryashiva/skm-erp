@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsEmail, IsIn } from 'class-validator';
+import { IsOptional, IsString, IsEmail, IsIn, IsArray } from 'class-validator';
 
 export class UpdateUserDto {
   @IsOptional()
@@ -32,4 +32,13 @@ export class UpdateUserDto {
   @IsOptional()
   @IsIn(['APPROVED', 'REJECTED', 'SUSPENDED', 'PENDING'])
   status?: 'APPROVED' | 'REJECTED' | 'SUSPENDED' | 'PENDING';
+
+  @IsOptional()
+  @IsArray()
+  divisionIds?: string[];
+
+  @IsOptional()
+  @IsArray()
+  roleIds?: string[];
 }
+

@@ -221,9 +221,42 @@ export class UsersService {
       }
     }
 
-    this.supabaseService.broadcastEvent('USER_UPDATED', { id, ...dto });
+    // Handle atomic division assignment if provided
+    let assignedDivisions: any[] = [];
+    if (Array.isArray(dto.divisionIds)) {
+      try {
+        const divRes = await this.assignDivisions(id, dto.divisionIds);
+        assignedDivisions = divRes?.divisions || [];
+      } catch (err: any) {
+        this.logger.debug(`assignDivisions in updateUser error: ${err.message}`);
+      }
+    }
 
-    return { message: 'User updated successfully', id, ...dto };
+    // Handle atomic role assignment if provided
+    let assignedRoles: any[] = [];
+    if (Array.isArray(dto.roleIds)) {
+      try {
+        const roleRes = await this.assignRoles(id, dto.roleIds);
+        assignedRoles = roleRes?.roles || [];
+      } catch (err: any) {
+        this.logger.debug(`assignRoles in updateUser error: ${err.message}`);
+      }
+    }
+
+    this.supabaseService.broadcastEvent('USER_UPDATED', {
+      id,
+      ...dto,
+      divisions: assignedDivisions,
+      roles: assignedRoles,
+    });
+
+    return {
+      message: 'User updated successfully',
+      id,
+      ...dto,
+      divisions: assignedDivisions,
+      roles: assignedRoles,
+    };
   }
 
   async deleteUser(id: string) {

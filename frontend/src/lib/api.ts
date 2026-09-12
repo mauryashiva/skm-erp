@@ -45,16 +45,29 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
     }
   }
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers,
+    });
+  } catch (netErr: any) {
+    throw new Error(
+      netErr?.message === 'Failed to fetch'
+        ? `Unable to connect to ERP server (${API_BASE_URL}). Please verify connection.`
+        : netErr?.message || 'Network request failed'
+    );
+  }
 
   if (!response.ok) {
     let errorMessage = `Request failed (${response.status})`;
     try {
       const errorJson = await response.json();
-      errorMessage = errorJson.message || errorJson.error || errorMessage;
+      if (Array.isArray(errorJson.message)) {
+        errorMessage = errorJson.message.join(', ');
+      } else {
+        errorMessage = errorJson.message || errorJson.error || errorMessage;
+      }
     } catch {
       // ignore
     }

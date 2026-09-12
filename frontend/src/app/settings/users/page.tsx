@@ -179,7 +179,7 @@ export default function UsersManagementPage() {
 
     setIsUpdating(true);
     try {
-      // 1. Update basic profile fields + username + password (if provided)
+      // 1. Single unified payload for profile, username, password, status, divisions, and roles
       const updatePayload: Record<string, any> = {
         fullName: editFullName,
         username: trimmedUsername,
@@ -188,36 +188,29 @@ export default function UsersManagementPage() {
         mobileNumber: editMobileNumber,
         primaryDivisionId: editPrimaryDivisionId || undefined,
         status: editStatus,
+        divisionIds: editAuthorizedDivisionIds,
+        roleIds: editRoleId ? [editRoleId] : [],
       };
 
       if (editNewPassword.trim()) {
         updatePayload.password = editNewPassword.trim();
       }
 
-      await api.patch(`/users/${editUser.id}`, updatePayload);
+      // Single atomic request to update employee
+      const updateRes = await api.patch<any>(`/users/${editUser.id}`, updatePayload);
 
-      // 2. Assign authorized divisions
-      const divRes = await api.patch<{ divisions: Division[] }>(`/users/${editUser.id}/divisions`, {
-        divisionIds: editAuthorizedDivisionIds,
-      });
-
-      // 3. Assign role if selected
-      let updatedRoles = editUser.roles || [];
-      if (editRoleId) {
-        const roleRes = await api.patch<{ roles: RoleRecord[] }>(`/users/${editUser.id}/roles`, {
-          roleIds: [editRoleId],
-        });
-        if (roleRes?.roles) {
-          updatedRoles = roleRes.roles.map((r) => ({ id: r.id, name: r.name }));
-        }
-      }
-
-      const assignedDivisions =
-        divRes?.divisions && divRes.divisions.length > 0
-          ? divRes.divisions
+      // Determine assigned divisions from response or fallback
+      const assignedDivisions: Division[] =
+        updateRes?.divisions && updateRes.divisions.length > 0
+          ? updateRes.divisions
           : allDivisions.filter((d) => editAuthorizedDivisionIds.includes(d.id));
 
-      // 4. If current logged in user was modified, update local in-memory stores immediately
+      const updatedRoles =
+        updateRes?.roles && updateRes.roles.length > 0
+          ? updateRes.roles
+          : editUser.roles || [];
+
+      // 2. If current logged in user was modified, update local in-memory stores immediately
       const currentLoggedInUser = useAuthStore.getState().user;
       if (currentLoggedInUser && currentLoggedInUser.id === editUser.id) {
         useErpContextStore.getState().setAvailableDivisions(assignedDivisions);
@@ -229,11 +222,11 @@ export default function UsersManagementPage() {
           mobile_number: editMobileNumber,
           status: editStatus,
           authorized_divisions: assignedDivisions,
-          roles: updatedRoles.map((r) => r.name),
+          roles: updatedRoles.map((r: any) => (typeof r === 'string' ? r : r.name)),
         });
       }
 
-      // 5. Broadcast real-time event across all devices, open tabs & header selector without page reload
+      // 3. Broadcast real-time event across all devices, open tabs & header selector without page reload
       broadcastRealtimeEvent('DIVISIONS_UPDATED', {
         userId: editUser.id,
         divisions: assignedDivisions,
@@ -269,10 +262,11 @@ export default function UsersManagementPage() {
           ? 'Employee details, username & password updated successfully.'
           : 'Employee details & division access updated successfully.'
       );
-      fetchUsers();
       setEditUser(null);
+      fetchUsers();
     } catch (err: any) {
-      toast.error(err.message || 'Failed to update employee');
+      console.error('Failed to update employee:', err);
+      toast.error(err?.message || 'Failed to update employee');
     } finally {
       setIsUpdating(false);
     }
