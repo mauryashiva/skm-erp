@@ -285,7 +285,7 @@ export default function SignupPage() {
                   >
                     {divisions.map((div) => (
                       <option key={div.id} value={div.id}>
-                        {div.name} {div.is_ho ? '(HO)' : ''}
+                        {div.name}
                       </option>
                     ))}
                   </select>

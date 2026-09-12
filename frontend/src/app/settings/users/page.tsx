@@ -4,6 +4,7 @@ import * as React from 'react';
 import { api } from '../../../lib/api';
 import { Division } from '../../../types';
 import { DivisionMultiSelect } from '../../../components/shared/division-multi-select';
+import { PrimaryDivisionSelect } from '../../../components/shared/primary-division-select';
 import { useAuthStore } from '../../../stores/auth-store';
 import { useErpContextStore } from '../../../stores/context-store';
 import {
@@ -779,17 +780,11 @@ export default function UsersManagementPage() {
                     <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
                     <span>Primary Home Division *</span>
                   </label>
-                  <select
-                    value={editPrimaryDivisionId}
-                    onChange={(e) => setEditPrimaryDivisionId(e.target.value)}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-input bg-card text-foreground focus:ring-2 focus:ring-primary focus:outline-hidden"
-                  >
-                    {allDivisions.map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.name} {d.is_ho ? '(HO)' : ''}
-                      </option>
-                    ))}
-                  </select>
+                  <PrimaryDivisionSelect
+                    allDivisions={allDivisions}
+                    selectedId={editPrimaryDivisionId}
+                    onChange={setEditPrimaryDivisionId}
+                  />
                 </div>
               </div>
 
