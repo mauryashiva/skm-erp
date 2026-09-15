@@ -25,6 +25,7 @@ export class UsersService {
           mobile_number,
           status,
           is_super_admin,
+          permissions,
           created_at,
           primary_division:divisions!profiles_primary_division_id_fkey(id, name, code, is_ho),
           user_divisions(division:divisions(id, name, code, is_ho)),
@@ -38,21 +39,44 @@ export class UsersService {
 
       const { data, error } = await query;
       if (!error && data) {
-        dbUsers = data.map((u: any) => ({
-          id: u.id,
-          fullName: u.full_name,
-          username: u.username,
-          email: u.email,
-          gender: u.gender,
-          mobileNumber: u.mobile_number,
-          status: u.status,
-          isSuperAdmin: u.is_super_admin,
-          createdAt: u.created_at,
-          primaryDivision: u.primary_division,
-          authorizedDivisions: (u.user_divisions || []).map((ud: any) => ud.division).filter(Boolean),
-          roles: (u.user_roles || []).map((ur: any) => ur.role).filter(Boolean),
-          permissions: u.permissions || [],
-        }));
+        dbUsers = data.map((u: any) => {
+          const mem = inMemoryUsersStore.get(u.username) || Array.from(inMemoryUsersStore.values()).find((m) => m.id === u.id);
+          const permsSet = new Set<string>();
+
+          // Load permissions saved in DB profile
+          if (Array.isArray(u.permissions)) {
+            u.permissions.forEach((p: string) => permsSet.add(p));
+          }
+          // Merge with in-memory permissions if any
+          if (mem?.permissions && Array.isArray(mem.permissions)) {
+            mem.permissions.forEach((p: string) => permsSet.add(p));
+          }
+
+          // If Super Admin, grant baseline full control
+          if (u.is_super_admin) {
+            [
+              'parameters.pincode.view', 'parameters.pincode.create', 'parameters.pincode.edit', 'parameters.pincode.delete', 'parameters.pincode.assign', 'parameters.pincode.audit',
+              'parameters.account_type.view', 'parameters.account_type.create', 'parameters.account_type.edit', 'parameters.account_type.delete', 'parameters.account_type.assign', 'parameters.account_type.audit',
+              'masters.party.view', 'masters.party.create', 'masters.party.edit', 'masters.party.delete',
+            ].forEach((p) => permsSet.add(p));
+          }
+
+          return {
+            id: u.id,
+            fullName: u.full_name,
+            username: u.username,
+            email: u.email,
+            gender: u.gender,
+            mobileNumber: u.mobile_number,
+            status: u.status,
+            isSuperAdmin: u.is_super_admin,
+            createdAt: u.created_at,
+            primaryDivision: u.primary_division,
+            authorizedDivisions: (u.user_divisions || []).map((ud: any) => ud.division).filter(Boolean),
+            roles: (u.user_roles || []).map((ur: any) => ur.role).filter(Boolean),
+            permissions: Array.from(permsSet),
+          };
+        });
       }
     } catch (err: any) {
       this.logger.debug(`Database list users error: ${err.message}`);

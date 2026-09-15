@@ -278,6 +278,22 @@ export default function FormAccessPage() {
         });
       }
 
+      // Optimistically update users in local state with newly saved form permissions
+      setUsers((prevUsers) =>
+        prevUsers.map((u) => {
+          const userState = matrixState[u.id];
+          if (!userState) return u;
+          const stripped = (u.permissions || []).filter((p) => !p.startsWith(`${formCode}.`));
+          const added = userState.hasAccess
+            ? [`${formCode}.view`, ...userState.actions.map((act) => `${formCode}.${act}`)]
+            : [];
+          return {
+            ...u,
+            permissions: Array.from(new Set([...stripped, ...added])),
+          };
+        }),
+      );
+
       // 1. Broadcast real-time event across all open windows & tabs via Supabase Realtime WebSocket
       await broadcastRealtimeEvent('USER_PERMISSIONS_UPDATED', {
         formCode,
