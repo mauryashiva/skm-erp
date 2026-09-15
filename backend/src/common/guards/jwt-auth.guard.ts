@@ -80,12 +80,57 @@ export class JwtAuthGuard implements CanActivate {
       throw new UnauthorizedException('Authentication token missing or invalid');
     }
 
-    // Support dev session tokens created in memory
+    // Support dev session tokens created in memory or re-hydrated from database
     if (authHeader.startsWith('Bearer dev-session-')) {
       const sessionId = authHeader.replace('Bearer dev-session-', '').trim();
-      const memUser = Array.from(inMemoryUsersStore.values()).find(
+      let memUser = Array.from(inMemoryUsersStore.values()).find(
         (u) => u.id === sessionId,
       );
+
+      if (!memUser) {
+        const supabase = this.supabaseService.getClient();
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select(`
+              id,
+              full_name,
+              username,
+              email,
+              gender,
+              mobile_number,
+              status,
+              is_super_admin,
+              permissions,
+              primary_division:divisions!profiles_primary_division_id_fkey(id, name, code, is_ho),
+              user_divisions(division:divisions(id, name, code, is_ho)),
+              user_roles(role:roles(id, name))
+            `)
+            .eq('id', sessionId)
+            .single();
+
+          if (profile) {
+            memUser = {
+              id: profile.id,
+              fullName: profile.full_name,
+              username: profile.username,
+              email: profile.email,
+              gender: profile.gender,
+              mobileNumber: profile.mobile_number,
+              status: profile.status,
+              isSuperAdmin: profile.is_super_admin,
+              primaryDivision: profile.primary_division as unknown as DivisionInfo,
+              authorizedDivisions: (profile.user_divisions || []).map((ud: any) => ud.division).filter(Boolean),
+              roles: (profile.user_roles || []).map((ur: any) => ur.role).filter(Boolean),
+              permissions: profile.permissions || ['parameters.pincode.view'],
+            } as any;
+            inMemoryUsersStore.set(profile.username, memUser!);
+          }
+        } catch {
+          // ignore
+        }
+      }
+
       if (memUser) {
         if (memUser.status !== 'APPROVED' && !memUser.isSuperAdmin) {
           throw new ForbiddenException(
@@ -110,7 +155,7 @@ export class JwtAuthGuard implements CanActivate {
           is_super_admin: memUser.isSuperAdmin,
           primary_division: memUser.primaryDivision,
           authorized_divisions: authorizedDivisions,
-          roles: memUser.roles?.map((r) => r.name) || ['Division User'],
+          roles: memUser.roles?.map((r: any) => r.name || r) || ['Division User'],
           permissions: memUser.permissions || ['parameters.pincode.view'],
           active_division_id: currentDivision?.id,
           is_ho_active: !!currentDivision?.is_ho,

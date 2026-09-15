@@ -125,8 +125,38 @@ export class UsersService {
     return allUsers;
   }
 
+  /**
+   * Helper to ensure user ID is a valid PostgreSQL UUID.
+   * If an in-memory session or legacy username-based ID is provided,
+   * it resolves the real UUID from Supabase profiles.
+   */
+  private async resolveUserId(id: string): Promise<string> {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    if (isUuid) return id;
+
+    const supabase = this.supabaseService.getClient();
+    const memUser = Array.from(inMemoryUsersStore.values()).find((u) => u.id === id);
+    if (memUser) {
+      try {
+        const { data: prof } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('username', memUser.username)
+          .single();
+        if (prof?.id) {
+          memUser.id = prof.id;
+          return prof.id;
+        }
+      } catch {
+        // ignore
+      }
+    }
+    return id;
+  }
+
   async updateUser(id: string, dto: any) {
     const supabase = this.supabaseService.getClient();
+    const targetId = await this.resolveUserId(id);
 
     const dbPayload: Record<string, any> = {
       updated_at: new Date().toISOString(),
@@ -143,7 +173,7 @@ export class UsersService {
       normalizedUsername = dto.username.toLowerCase().trim();
       // Check memory store for collision with another user
       for (const [uname, u] of inMemoryUsersStore.entries()) {
-        if (uname === normalizedUsername && u.id !== id) {
+        if (uname === normalizedUsername && u.id !== id && u.id !== targetId) {
           throw new BadRequestException('Username is already taken');
         }
       }
@@ -153,7 +183,7 @@ export class UsersService {
           .from('profiles')
           .select('id')
           .eq('username', normalizedUsername)
-          .neq('id', id)
+          .neq('id', targetId)
           .single();
         if (existing) {
           throw new BadRequestException('Username is already taken');
@@ -174,7 +204,7 @@ export class UsersService {
     }
     if (Object.keys(authAdminPayload).length > 0) {
       try {
-        await supabase.auth.admin.updateUserById(id, authAdminPayload);
+        await supabase.auth.admin.updateUserById(targetId, authAdminPayload);
       } catch (err: any) {
         this.logger.warn(`Supabase auth admin update error: ${err.message}`);
       }
@@ -184,10 +214,10 @@ export class UsersService {
       const { error } = await supabase
         .from('profiles')
         .update(dbPayload)
-        .eq('id', id);
+        .eq('id', targetId);
 
       if (error) {
-        this.logger.debug(`Database update user info: ${error.message}`);
+        this.logger.warn(`Database update user profile info: ${error.message}`);
       }
     } catch {
       // ignore
@@ -195,7 +225,8 @@ export class UsersService {
 
     // Also update in-memory store
     for (const [uname, u] of Array.from(inMemoryUsersStore.entries())) {
-      if (u.id === id) {
+      if (u.id === id || u.id === targetId) {
+        u.id = targetId;
         if (dto.fullName) u.fullName = dto.fullName;
         if (dto.email) u.email = dto.email;
         if (dto.gender) u.gender = dto.gender;
@@ -227,7 +258,7 @@ export class UsersService {
     let assignedDivisions: any[] = [];
     if (Array.isArray(dto.divisionIds)) {
       try {
-        const divRes = await this.assignDivisions(id, dto.divisionIds);
+        const divRes = await this.assignDivisions(targetId, dto.divisionIds);
         assignedDivisions = divRes?.divisions || [];
       } catch (err: any) {
         this.logger.debug(`assignDivisions in updateUser error: ${err.message}`);
@@ -238,7 +269,7 @@ export class UsersService {
     let assignedRoles: any[] = [];
     if (Array.isArray(dto.roleIds)) {
       try {
-        const roleRes = await this.assignRoles(id, dto.roleIds);
+        const roleRes = await this.assignRoles(targetId, dto.roleIds);
         assignedRoles = roleRes?.roles || [];
       } catch (err: any) {
         this.logger.debug(`assignRoles in updateUser error: ${err.message}`);
@@ -248,7 +279,7 @@ export class UsersService {
     // Handle direct permissions array update if provided
     if (Array.isArray(dto.permissions)) {
       for (const u of inMemoryUsersStore.values()) {
-        if (u.id === id) {
+        if (u.id === id || u.id === targetId) {
           u.permissions = dto.permissions;
           break;
         }
@@ -257,14 +288,14 @@ export class UsersService {
         await supabase
           .from('profiles')
           .update({ permissions: dto.permissions, updated_at: new Date().toISOString() })
-          .eq('id', id);
+          .eq('id', targetId);
       } catch (err: any) {
         this.logger.debug(`Database update permissions info: ${err.message}`);
       }
     }
 
     this.supabaseService.broadcastEvent('USER_UPDATED', {
-      id,
+      id: targetId,
       ...dto,
       divisions: assignedDivisions,
       roles: assignedRoles,
@@ -272,7 +303,7 @@ export class UsersService {
 
     return {
       message: 'User updated successfully',
-      id,
+      id: targetId,
       ...dto,
       divisions: assignedDivisions,
       roles: assignedRoles,
@@ -281,36 +312,40 @@ export class UsersService {
 
   async deleteUser(id: string) {
     const supabase = this.supabaseService.getClient();
+    const targetId = await this.resolveUserId(id);
 
     try {
       // Delete associated junction records
-      await supabase.from('user_divisions').delete().eq('user_id', id);
-      await supabase.from('user_roles').delete().eq('user_id', id);
+      await supabase.from('user_divisions').delete().eq('user_id', targetId);
+      await supabase.from('user_roles').delete().eq('user_id', targetId);
       // Delete profile
-      await supabase.from('profiles').delete().eq('id', id);
+      await supabase.from('profiles').delete().eq('id', targetId);
       // Delete Supabase Auth user
-      await supabase.auth.admin.deleteUser(id);
+      await supabase.auth.admin.deleteUser(targetId);
     } catch (err: any) {
       this.logger.warn(`Database delete user info: ${err.message}`);
     }
 
     // Remove from inMemoryUsersStore
     for (const [uname, u] of inMemoryUsersStore.entries()) {
-      if (u.id === id) {
+      if (u.id === id || u.id === targetId) {
         inMemoryUsersStore.delete(uname);
         break;
       }
     }
 
-    this.supabaseService.broadcastEvent('USER_DELETED', { userId: id });
+    this.supabaseService.broadcastEvent('USER_DELETED', { userId: targetId });
 
-    return { message: 'User deleted successfully', id };
+    return { message: 'User deleted successfully', id: targetId };
   }
 
   async updateUserStatus(id: string, status: string) {
+    const targetId = await this.resolveUserId(id);
+
     // Also update in-memory store
     for (const u of inMemoryUsersStore.values()) {
-      if (u.id === id) {
+      if (u.id === id || u.id === targetId) {
+        u.id = targetId;
         u.status = status as any;
         break;
       }
@@ -322,26 +357,27 @@ export class UsersService {
       const { error } = await supabase
         .from('profiles')
         .update({ status, updated_at: new Date().toISOString() })
-        .eq('id', id);
+        .eq('id', targetId);
 
       if (error) {
-        this.logger.debug(`Database update user status info: ${error.message}`);
+        this.logger.warn(`Database update user status info: ${error.message}`);
       }
     } catch {
       // ignore unmigrated
     }
 
-    return { message: `User status updated to ${status}`, id, status };
+    return { message: `User status updated to ${status}`, id: targetId, status };
   }
 
   async assignDivisions(userId: string, divisionIds: string[]) {
     const supabase = this.supabaseService.getClient();
+    const targetId = await this.resolveUserId(userId);
 
     try {
-      await supabase.from('user_divisions').delete().eq('user_id', userId);
+      await supabase.from('user_divisions').delete().eq('user_id', targetId);
 
       const rows = divisionIds.map((divId) => ({
-        user_id: userId,
+        user_id: targetId,
         division_id: divId,
       }));
 
@@ -349,7 +385,7 @@ export class UsersService {
         await supabase.from('user_divisions').insert(rows);
       }
     } catch (err: any) {
-      this.logger.debug(`Database assign divisions info: ${err.message}`);
+      this.logger.warn(`Database assign divisions info: ${err.message}`);
     }
 
     // Load full division objects
@@ -387,21 +423,22 @@ export class UsersService {
 
     // Update in-memory user if exists
     for (const u of inMemoryUsersStore.values()) {
-      if (u.id === userId) {
+      if (u.id === userId || u.id === targetId) {
+        u.id = targetId;
         u.authorizedDivisions = assignedDivisions;
         break;
       }
     }
 
     this.supabaseService.broadcastEvent('DIVISIONS_UPDATED', {
-      userId,
+      userId: targetId,
       divisionIds,
       divisions: assignedDivisions,
     });
 
     return {
       message: 'Authorized divisions assigned successfully',
-      userId,
+      userId: targetId,
       divisionIds,
       divisions: assignedDivisions,
     };
@@ -409,12 +446,13 @@ export class UsersService {
 
   async assignRoles(userId: string, roleIds: string[]) {
     const supabase = this.supabaseService.getClient();
+    const targetId = await this.resolveUserId(userId);
 
     try {
-      await supabase.from('user_roles').delete().eq('user_id', userId);
+      await supabase.from('user_roles').delete().eq('user_id', targetId);
 
       const rows = roleIds.map((roleId) => ({
-        user_id: userId,
+        user_id: targetId,
         role_id: roleId,
       }));
 
@@ -422,7 +460,7 @@ export class UsersService {
         await supabase.from('user_roles').insert(rows);
       }
     } catch (err: any) {
-      this.logger.debug(`Database assign roles info: ${err.message}`);
+      this.logger.warn(`Database assign roles info: ${err.message}`);
     }
 
     const allRoles = await this.listRoles();
@@ -462,7 +500,8 @@ export class UsersService {
 
     // Update in-memory user if exists and impart role permissions
     for (const u of inMemoryUsersStore.values()) {
-      if (u.id === userId) {
+      if (u.id === userId || u.id === targetId) {
+        u.id = targetId;
         u.roles = assignedRoles.map((r) => ({ id: r.id, name: r.name }));
         const rolePerms = new Set<string>();
         assignedRoles.forEach((r) => {
@@ -475,13 +514,13 @@ export class UsersService {
     }
 
     this.supabaseService.broadcastEvent('USER_PERMISSIONS_UPDATED', {
-      userId,
+      userId: targetId,
       roles: assignedRoles,
     });
 
     return {
       message: 'Roles assigned successfully',
-      userId,
+      userId: targetId,
       roleIds,
       roles: assignedRoles,
     };
@@ -495,6 +534,7 @@ export class UsersService {
 
     for (const item of assignments) {
       const { userId, hasAccess, actions } = item;
+      const targetId = await this.resolveUserId(userId);
 
       // Base permission when hasAccess is true is always <formCode>.view
       // Plus elevated privileges: <formCode>.<action> (create, edit, delete, assign, audit)
@@ -507,7 +547,8 @@ export class UsersService {
 
       // 1. Update in-memory user
       for (const u of inMemoryUsersStore.values()) {
-        if (u.id === userId) {
+        if (u.id === userId || u.id === targetId) {
+          u.id = targetId;
           const current = u.permissions || [];
           // Strip any permissions matching this formCode
           const filtered = current.filter((p) => !p.startsWith(`${formCode}.`));
@@ -521,7 +562,7 @@ export class UsersService {
         const { data: prof } = await supabase
           .from('profiles')
           .select('id, permissions')
-          .eq('id', userId)
+          .eq('id', targetId)
           .single();
 
         if (prof) {
@@ -531,10 +572,10 @@ export class UsersService {
           await supabase
             .from('profiles')
             .update({ permissions: updated, updated_at: new Date().toISOString() })
-            .eq('id', userId);
+            .eq('id', targetId);
         }
       } catch (err: any) {
-        this.logger.debug(`Database updateFormAccess error for ${userId}: ${err.message}`);
+        this.logger.debug(`Database updateFormAccess error for ${targetId}: ${err.message}`);
       }
     }
 

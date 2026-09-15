@@ -11,6 +11,8 @@ import { LoginDto } from './dto/login.dto';
 import { AuthUser, DivisionInfo } from '../common/interfaces/auth-user.interface';
 import { inMemoryUsersStore } from './pending-users.store';
 
+import { randomUUID } from 'crypto';
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -58,9 +60,9 @@ export class AuthService {
 
     // Standardized internal email for username-based Supabase Auth
     const internalEmail = `${normalizedUsername}@skmsteels.internal`;
-    let userId = `user-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    let userId: string = randomUUID();
 
-    // Create user in Supabase Auth if available
+    // Create or synchronize user in Supabase Auth
     try {
       const { data: authData, error: authError } = await supabase.auth.admin.createUser({
         email: internalEmail,
@@ -76,36 +78,78 @@ export class AuthService {
 
       if (!authError && authData?.user) {
         userId = authData.user.id;
+      } else if (authError) {
+        this.logger.warn(`Supabase Auth admin createUser notice: ${authError.message}`);
+        // If auth user already exists in auth.users, retrieve existing UUID and update password
+        const { data: listData } = await supabase.auth.admin.listUsers();
+        const existingAuthUser = listData?.users?.find(
+          (u) => u.email === internalEmail || u.user_metadata?.username === normalizedUsername,
+        );
+        if (existingAuthUser) {
+          userId = existingAuthUser.id;
+          await supabase.auth.admin.updateUserById(userId, {
+            password: dto.password,
+            user_metadata: {
+              username: normalizedUsername,
+              full_name: dto.fullName,
+              email: dto.email.toLowerCase().trim(),
+              gender: dto.gender,
+            },
+          });
+        }
       }
     } catch (err: any) {
-      this.logger.warn(`Supabase Auth admin createUser skipped/failed: ${err?.message}`);
+      this.logger.warn(`Supabase Auth admin createUser error: ${err?.message}`);
     }
 
-    // Create Profile with PENDING status in DB
+    // Create or upsert Profile with PENDING status in DB
     try {
-      const { error: profileError } = await supabase.from('profiles').insert({
-        id: userId,
-        full_name: dto.fullName,
-        username: normalizedUsername,
-        email: dto.email.toLowerCase().trim(),
-        gender: dto.gender,
-        mobile_number: dto.mobileNumber,
-        primary_division_id: dto.divisionId,
-        status: 'PENDING',
-        is_super_admin: false,
-      });
+      const { error: profileError } = await supabase.from('profiles').upsert(
+        {
+          id: userId,
+          full_name: dto.fullName,
+          username: normalizedUsername,
+          email: dto.email.toLowerCase().trim(),
+          gender: dto.gender,
+          mobile_number: dto.mobileNumber,
+          primary_division_id: dto.divisionId,
+          status: 'PENDING',
+          is_super_admin: false,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'id' },
+      );
 
       if (profileError) {
-        this.logger.warn(`Profile table insert unmigrated or failed (${profileError.message}), recording in memory store.`);
+        this.logger.error(`Profile table upsert failed (${profileError.message})`);
       } else {
         // Link initial primary division in user_divisions
-        await supabase.from('user_divisions').insert({
-          user_id: userId,
-          division_id: dto.divisionId,
-        });
+        await supabase.from('user_divisions').upsert(
+          {
+            user_id: userId,
+            division_id: dto.divisionId,
+          },
+          { onConflict: 'user_id,division_id' },
+        );
+
+        // Assign default role 'Division User' in user_roles
+        const { data: roleRow } = await supabase
+          .from('roles')
+          .select('id')
+          .eq('name', 'Division User')
+          .single();
+        if (roleRow?.id) {
+          await supabase.from('user_roles').upsert(
+            {
+              user_id: userId,
+              role_id: roleRow.id,
+            },
+            { onConflict: 'user_id,role_id' },
+          );
+        }
       }
     } catch (err: any) {
-      this.logger.warn(`Profile table unmigrated: ${err?.message}`);
+      this.logger.warn(`Profile table persistence error: ${err?.message}`);
     }
 
     // Always record in inMemoryUsersStore as well for instant pending review & standby resilience
@@ -119,7 +163,7 @@ export class AuthService {
       password: dto.password,
       primaryDivision: division,
       authorizedDivisions: [division],
-      roles: [{ id: 'role-div-user', name: 'Division User' }],
+      roles: [{ id: 'fe8961fd-ad14-415a-93e3-d56bc5f37771', name: 'Division User' }],
       permissions: ['parameters.pincode.view', 'parameters.account_type.view'],
       status: 'PENDING',
       isSuperAdmin: false,
