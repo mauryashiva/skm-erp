@@ -6,6 +6,7 @@ export function useRealtimePincodes(onDataChange: () => void) {
   useRealtimeTable({
     tableName: 'pincodes',
     junctionTableName: 'pincode_divisions',
+    broadcastEvents: ['USER_PERMISSIONS_UPDATED', 'PINCODES_UPDATED'],
     onDataChange,
     label: 'Pincode',
   });

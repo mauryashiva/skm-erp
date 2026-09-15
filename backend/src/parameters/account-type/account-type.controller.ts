@@ -59,7 +59,7 @@ export class AccountTypeController {
 
   @Post(':id/activate')
   @UseGuards(HoOnlyGuard)
-  @RequirePermissions('parameters.account_type.edit')
+  @RequirePermissions('parameters.account_type.delete')
   async activateAccountType(
     @Param('id') id: string,
     @CurrentUser() user: AuthUser,

@@ -83,6 +83,16 @@ export default function UsersManagementPage() {
   const [showNewPassword, setShowNewPassword] = React.useState(false);
   const [isUpdating, setIsUpdating] = React.useState(false);
 
+  // Granular capability flags based on assigned form access permissions
+  const { user, hasPermission } = useAuthStore();
+  const isSuperAdmin = Boolean(user?.is_super_admin);
+  const hasUsersManage = hasPermission('users.manage');
+
+  const canApprove = isSuperAdmin || hasUsersManage || hasPermission('settings.users.approve');
+  const canEdit = isSuperAdmin || hasUsersManage || hasPermission('settings.users.edit');
+  const canDelete = isSuperAdmin || hasUsersManage || hasPermission('settings.users.delete');
+  const canAssign = isSuperAdmin || hasUsersManage || hasPermission('settings.users.assign');
+
   const fetchUsers = React.useCallback(async (silent = false) => {
     if (!silent) setIsLoading(true);
     try {
@@ -471,25 +481,29 @@ export default function UsersManagementPage() {
                             <Eye className="w-4 h-4 text-blue-500" />
                           </button>
 
-                          {/* Edit (Pencil) button */}
-                          <button
-                            type="button"
-                            onClick={() => handleOpenEdit(u)}
-                            className="p-1.5 rounded-lg border border-border bg-card text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
-                            title="Edit Employee & Assign Divisions"
-                          >
-                            <Pencil className="w-4 h-4 text-amber-500" />
-                          </button>
+                          {/* Edit (Pencil) button - accessible if user has edit or approve rights */}
+                          {(canEdit || canApprove) && (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEdit(u)}
+                              className="p-1.5 rounded-lg border border-border bg-card text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
+                              title={canEdit ? 'Edit Employee & Assign Divisions' : 'Review & Approve Status'}
+                            >
+                              <Pencil className="w-4 h-4 text-amber-500" />
+                            </button>
+                          )}
 
-                          {/* Delete (Trash2) button */}
-                          <button
-                            type="button"
-                            onClick={() => setDeleteTargetUser(u)}
-                            className="p-1.5 rounded-lg border border-border bg-card text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 hover:border-rose-500/30 transition-colors cursor-pointer"
-                            title="Delete Employee"
-                          >
-                            <Trash2 className="w-4 h-4 text-rose-500" />
-                          </button>
+                          {/* Delete (Trash2) button - restricted to users with delete permission */}
+                          {canDelete && (
+                            <button
+                              type="button"
+                              onClick={() => setDeleteTargetUser(u)}
+                              className="p-1.5 rounded-lg border border-border bg-card text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 hover:border-rose-500/30 transition-colors cursor-pointer"
+                              title="Delete Employee"
+                            >
+                              <Trash2 className="w-4 h-4 text-rose-500" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

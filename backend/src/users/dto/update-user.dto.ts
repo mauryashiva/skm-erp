@@ -40,5 +40,9 @@ export class UpdateUserDto {
   @IsOptional()
   @IsArray()
   roleIds?: string[];
+
+  @IsOptional()
+  @IsArray()
+  permissions?: string[];
 }
 

@@ -37,6 +37,7 @@ interface PincodeTableProps {
   canEdit: boolean;
   canDelete: boolean;
   canAssign: boolean;
+  canAudit?: boolean;
   isLoading: boolean;
   onRefresh: () => void;
   activeDivisionName: string;
@@ -50,6 +51,7 @@ export function PincodeTable({
   canEdit,
   canDelete,
   canAssign,
+  canAudit = false,
   isLoading,
   onRefresh,
   activeDivisionName,
@@ -132,12 +134,16 @@ export function PincodeTable({
   };
 
   const handleHistory = (record: PincodeRecord) => {
+    if (!canAudit) {
+      toast.error('Unauthorized: You do not have permission to view Audit History.');
+      return;
+    }
     setHistoryRecord(record);
     setHistoryModalOpen(true);
   };
 
   const handleActivate = async (record: PincodeRecord) => {
-    if (!canEdit) {
+    if (!canDelete) {
       toast.error('Unauthorized: Activation requires HO control permissions.');
       return;
     }
@@ -311,7 +317,7 @@ export function PincodeTable({
                     <td className="px-5 py-3.5 whitespace-nowrap">
                       {(() => {
                         const childCount = (record.assignedDivisions || []).filter((d) => !d.isHo).length;
-                        return canAssign ? (
+                        return (canAssign && isHoActive) ? (
                           <button
                             onClick={() => handleAssign(record)}
                             className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-secondary hover:bg-muted border border-border text-[11px] font-medium transition-colors text-foreground cursor-pointer shrink-0"
@@ -342,6 +348,7 @@ export function PincodeTable({
                         canEdit={canEdit}
                         canDelete={canDelete}
                         canAssign={canAssign}
+                        canAudit={canAudit}
                         isHoActive={isHoActive}
                         onView={() => handleView(record)}
                         onHistory={() => handleHistory(record)}

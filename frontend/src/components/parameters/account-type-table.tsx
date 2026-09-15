@@ -36,6 +36,7 @@ interface AccountTypeTableProps {
   canEdit: boolean;
   canDelete: boolean;
   canAssign: boolean;
+  canAudit?: boolean;
   isLoading: boolean;
   onRefresh: () => void;
   activeDivisionName: string;
@@ -49,6 +50,7 @@ export function AccountTypeTable({
   canEdit,
   canDelete,
   canAssign,
+  canAudit = false,
   isLoading,
   onRefresh,
   activeDivisionName,
@@ -127,12 +129,16 @@ export function AccountTypeTable({
   };
 
   const handleHistory = (record: AccountTypeRecord) => {
+    if (!canAudit) {
+      toast.error('Unauthorized: You do not have permission to view Audit History.');
+      return;
+    }
     setHistoryRecord(record);
     setHistoryModalOpen(true);
   };
 
   const handleActivate = async (record: AccountTypeRecord) => {
-    if (!canEdit) {
+    if (!canDelete) {
       toast.error('Unauthorized: Activation requires HO control permissions.');
       return;
     }
@@ -296,7 +302,7 @@ export function AccountTypeTable({
                           (d) => !d.isHo,
                         ).length;
 
-                        return isHoActive ? (
+                        return (canAssign && isHoActive) ? (
                           <button
                             type="button"
                             onClick={() => handleAssign(record)}
@@ -328,6 +334,7 @@ export function AccountTypeTable({
                         canEdit={canEdit}
                         canDelete={canDelete}
                         canAssign={canAssign}
+                        canAudit={canAudit}
                         isHoActive={isHoActive}
                         onView={() => handleView(record)}
                         onHistory={() => handleHistory(record)}

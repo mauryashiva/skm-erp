@@ -28,10 +28,24 @@ export class PermissionsGuard implements CanActivate {
       return true;
     }
 
-    const hasAll = requiredPermissions.every((perm) => user.permissions.includes(perm));
-    if (!hasAll) {
+    const userPerms = Array.isArray(user.permissions) ? user.permissions : [];
+
+    const hasAccess = requiredPermissions.some((perm) => {
+      // 1. Direct permission match
+      if (userPerms.includes(perm)) return true;
+
+      // 2. High-level manager match: 'users.manage' satisfies any 'settings.users.*'
+      if (userPerms.includes('users.manage') && perm.startsWith('settings.users.')) return true;
+
+      // 3. 'roles.manage' satisfies any 'settings.roles.*' or 'settings.form_access.*'
+      if (userPerms.includes('roles.manage') && (perm.startsWith('settings.roles.') || perm.startsWith('settings.form_access.'))) return true;
+
+      return false;
+    });
+
+    if (!hasAccess) {
       throw new ForbiddenException(
-        `Insufficient permissions. Required: [${requiredPermissions.join(', ')}]`,
+        `Insufficient permissions. Required one of: [${requiredPermissions.join(', ')}]`,
       );
     }
 

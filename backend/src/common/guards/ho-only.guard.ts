@@ -15,9 +15,10 @@ export class HoOnlyGuard implements CanActivate {
       return true;
     }
 
+    // Permanent HO Control Rule: Central parameters and masters can only be created or managed from Head Office (HO)
     if (!user.is_ho_active) {
       throw new ForbiddenException(
-        'Permanent HO Control Rule: Central Parameters and Masters can only be managed from SKM STEELS LIMITED (HO). Child divisions have View & Use access only.',
+        'Permanent HO Control Rule: Central Parameters and Masters can only be created and managed from SKM STEELS LIMITED (HO). Operating divisions have read-only assigned record view.',
       );
     }
 

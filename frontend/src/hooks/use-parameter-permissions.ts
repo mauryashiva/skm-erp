@@ -17,10 +17,12 @@ export interface UseParameterPermissionsReturn {
   canCreate: boolean;
   /** Permission to edit records */
   canEdit: boolean;
-  /** Permission to deactivate/delete records */
+  /** Permission to deactivate/activate/delete records */
   canDelete: boolean;
   /** Permission to assign records to divisions */
   canAssign: boolean;
+  /** Permission to view audit timeline history */
+  canAudit: boolean;
 }
 
 /**
@@ -30,8 +32,11 @@ export interface UseParameterPermissionsReturn {
  * @param moduleKey Entity/Form identifier, e.g. "pincode" or "account_type"
  */
 export function useParameterPermissions(moduleKey: string): UseParameterPermissionsReturn {
-  const { hasPermission } = useAuthStore();
-  const { activeDivision, isHoActive } = useErpContextStore();
+  // Subscribe to user reactively so changes to permissions trigger re-render without page refresh
+  const user = useAuthStore((s) => s.user);
+  const hasPermission = useAuthStore((s) => s.hasPermission);
+  const activeDivision = useErpContextStore((s) => s.activeDivision);
+  const isHoActive = useErpContextStore((s) => s.isHoActive);
   const [isMounted, setIsMounted] = React.useState(false);
 
   React.useEffect(() => {
@@ -52,11 +57,22 @@ export function useParameterPermissions(moduleKey: string): UseParameterPermissi
 
   // Normalize moduleKey, e.g. "account-type" or "account_type" -> "account_type"
   const sanitizedKey = moduleKey.toLowerCase().replace(/-/g, '_');
+  const isSuperAdmin = Boolean(user?.is_super_admin);
 
-  const canCreate = isMounted && currentIsHoActive && hasPermission(`parameters.${sanitizedKey}.create`);
-  const canEdit   = isMounted && currentIsHoActive && hasPermission(`parameters.${sanitizedKey}.edit`);
-  const canDelete = isMounted && currentIsHoActive && hasPermission(`parameters.${sanitizedKey}.delete`);
-  const canAssign = isMounted && currentIsHoActive && hasPermission(`parameters.${sanitizedKey}.assign`);
+  // Permissions granted in Form Access:
+  const hasCreatePerm = isMounted && (isSuperAdmin || hasPermission(`parameters.${sanitizedKey}.create`));
+  const hasEditPerm   = isMounted && (isSuperAdmin || hasPermission(`parameters.${sanitizedKey}.edit`));
+  const hasDeletePerm = isMounted && (isSuperAdmin || hasPermission(`parameters.${sanitizedKey}.delete`));
+  const hasAssignPerm = isMounted && (isSuperAdmin || hasPermission(`parameters.${sanitizedKey}.assign`));
+  const hasAuditPerm  = isMounted && (isSuperAdmin || hasPermission(`parameters.${sanitizedKey}.audit`));
+
+  // Permanent HO Control Rule: Only Head Office (HO) can create, edit, delete, or assign records.
+  // In operating child divisions, the form is in Assigned Records View (View Only).
+  const canCreate = currentIsHoActive && hasCreatePerm;
+  const canEdit   = currentIsHoActive && hasEditPerm;
+  const canDelete = currentIsHoActive && hasDeletePerm;
+  const canAssign = currentIsHoActive && hasAssignPerm;
+  const canAudit  = hasAuditPerm;
 
   return {
     isMounted,
@@ -67,5 +83,6 @@ export function useParameterPermissions(moduleKey: string): UseParameterPermissi
     canEdit,
     canDelete,
     canAssign,
+    canAudit,
   };
 }

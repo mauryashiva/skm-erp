@@ -51,6 +51,7 @@ export class UsersService {
           primaryDivision: u.primary_division,
           authorizedDivisions: (u.user_divisions || []).map((ud: any) => ud.division).filter(Boolean),
           roles: (u.user_roles || []).map((ur: any) => ur.role).filter(Boolean),
+          permissions: u.permissions || [],
         }));
       }
     } catch (err: any) {
@@ -73,6 +74,7 @@ export class UsersService {
         primaryDivision: u.primaryDivision,
         authorizedDivisions: u.authorizedDivisions || [u.primaryDivision],
         roles: u.roles || [{ id: 'role-div-user', name: 'Division User' }],
+        permissions: u.permissions || [],
       }));
 
     let allUsers = [...dbUsers, ...memoryUsers];
@@ -243,6 +245,24 @@ export class UsersService {
       }
     }
 
+    // Handle direct permissions array update if provided
+    if (Array.isArray(dto.permissions)) {
+      for (const u of inMemoryUsersStore.values()) {
+        if (u.id === id) {
+          u.permissions = dto.permissions;
+          break;
+        }
+      }
+      try {
+        await supabase
+          .from('profiles')
+          .update({ permissions: dto.permissions, updated_at: new Date().toISOString() })
+          .eq('id', id);
+      } catch (err: any) {
+        this.logger.debug(`Database update permissions info: ${err.message}`);
+      }
+    }
+
     this.supabaseService.broadcastEvent('USER_UPDATED', {
       id,
       ...dto,
@@ -408,19 +428,127 @@ export class UsersService {
     const allRoles = await this.listRoles();
     const assignedRoles = allRoles.filter((r) => roleIds.includes(r.id));
 
-    // Update in-memory user if exists
+    const ROLE_PERMISSIONS_MAP: Record<string, string[]> = {
+      'Super Admin': [
+        'parameters.pincode.view', 'parameters.pincode.create', 'parameters.pincode.edit', 'parameters.pincode.delete', 'parameters.pincode.assign', 'parameters.pincode.audit',
+        'parameters.account_type.view', 'parameters.account_type.create', 'parameters.account_type.edit', 'parameters.account_type.delete', 'parameters.account_type.assign', 'parameters.account_type.audit',
+        'masters.party.view', 'masters.party.create', 'masters.party.edit', 'masters.party.delete',
+        'settings.users.view', 'settings.users.approve', 'settings.users.edit', 'settings.users.delete', 'settings.users.assign', 'settings.users.audit',
+        'settings.roles.view', 'settings.roles.create', 'settings.roles.edit', 'settings.roles.delete', 'settings.roles.audit',
+        'settings.form_access.view', 'settings.form_access.edit', 'settings.form_access.audit',
+        'users.manage', 'roles.manage',
+      ],
+      'HO Administrator': [
+        'parameters.pincode.view', 'parameters.pincode.create', 'parameters.pincode.edit', 'parameters.pincode.delete', 'parameters.pincode.assign', 'parameters.pincode.audit',
+        'parameters.account_type.view', 'parameters.account_type.create', 'parameters.account_type.edit', 'parameters.account_type.delete', 'parameters.account_type.assign', 'parameters.account_type.audit',
+        'masters.party.view', 'masters.party.create', 'masters.party.edit', 'masters.party.delete',
+        'settings.users.view', 'settings.users.approve', 'settings.users.edit', 'settings.users.delete', 'settings.users.assign', 'settings.users.audit',
+        'settings.roles.view', 'settings.roles.create', 'settings.roles.edit', 'settings.roles.delete', 'settings.roles.audit',
+        'settings.form_access.view', 'settings.form_access.edit', 'settings.form_access.audit',
+        'users.manage', 'roles.manage',
+      ],
+      'HO Staff': [
+        'parameters.pincode.view', 'parameters.pincode.create', 'parameters.pincode.edit', 'parameters.pincode.audit',
+        'parameters.account_type.view', 'parameters.account_type.create', 'parameters.account_type.edit', 'parameters.account_type.audit',
+        'masters.party.view', 'masters.party.create', 'masters.party.edit',
+      ],
+      'Division Manager': [
+        'parameters.pincode.view', 'parameters.account_type.view', 'masters.party.view',
+      ],
+      'Division User': [
+        'parameters.pincode.view', 'parameters.account_type.view', 'masters.party.view',
+      ],
+    };
+
+    // Update in-memory user if exists and impart role permissions
     for (const u of inMemoryUsersStore.values()) {
       if (u.id === userId) {
         u.roles = assignedRoles.map((r) => ({ id: r.id, name: r.name }));
+        const rolePerms = new Set<string>();
+        assignedRoles.forEach((r) => {
+          const perms = ROLE_PERMISSIONS_MAP[r.name] || [];
+          perms.forEach((p) => rolePerms.add(p));
+        });
+        u.permissions = Array.from(new Set([...(u.permissions || []), ...rolePerms]));
         break;
       }
     }
+
+    this.supabaseService.broadcastEvent('USER_PERMISSIONS_UPDATED', {
+      userId,
+      roles: assignedRoles,
+    });
 
     return {
       message: 'Roles assigned successfully',
       userId,
       roleIds,
       roles: assignedRoles,
+    };
+  }
+
+  async updateFormAccess(
+    formCode: string,
+    assignments: Array<{ userId: string; hasAccess: boolean; actions: string[] }>,
+  ) {
+    const supabase = this.supabaseService.getClient();
+
+    for (const item of assignments) {
+      const { userId, hasAccess, actions } = item;
+
+      // Base permission when hasAccess is true is always <formCode>.view
+      // Plus elevated privileges: <formCode>.<action> (create, edit, delete, assign, audit)
+      const formPerms = hasAccess
+        ? [
+            `${formCode}.view`,
+            ...(actions || []).map((act) => `${formCode}.${act.toLowerCase().trim()}`),
+          ]
+        : [];
+
+      // 1. Update in-memory user
+      for (const u of inMemoryUsersStore.values()) {
+        if (u.id === userId) {
+          const current = u.permissions || [];
+          // Strip any permissions matching this formCode
+          const filtered = current.filter((p) => !p.startsWith(`${formCode}.`));
+          u.permissions = Array.from(new Set([...filtered, ...formPerms]));
+          break;
+        }
+      }
+
+      // 2. Update database profile permissions if exists
+      try {
+        const { data: prof } = await supabase
+          .from('profiles')
+          .select('id, permissions')
+          .eq('id', userId)
+          .single();
+
+        if (prof) {
+          const current: string[] = prof.permissions || [];
+          const filtered = current.filter((p) => !p.startsWith(`${formCode}.`));
+          const updated = Array.from(new Set([...filtered, ...formPerms]));
+          await supabase
+            .from('profiles')
+            .update({ permissions: updated, updated_at: new Date().toISOString() })
+            .eq('id', userId);
+        }
+      } catch (err: any) {
+        this.logger.debug(`Database updateFormAccess error for ${userId}: ${err.message}`);
+      }
+    }
+
+    // Broadcast across all open ERP sessions for instant real-time sync
+    this.supabaseService.broadcastEvent('USER_PERMISSIONS_UPDATED', {
+      formCode,
+      assignmentsCount: assignments.length,
+      timestamp: new Date().toISOString(),
+    });
+
+    return {
+      message: 'Form access policies updated successfully',
+      formCode,
+      count: assignments.length,
     };
   }
 

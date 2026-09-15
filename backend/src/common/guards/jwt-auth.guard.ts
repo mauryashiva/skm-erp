@@ -198,6 +198,15 @@ export class JwtAuthGuard implements CanActivate {
       }
     });
 
+    // Merge granular form-access permissions from in-memory store or profile
+    const memUserMatch = Array.from(inMemoryUsersStore.values()).find((u) => u.id === userId);
+    if (memUserMatch?.permissions) {
+      memUserMatch.permissions.forEach((p) => permissionsSet.add(p));
+    }
+    if ((profile as any)?.permissions && Array.isArray((profile as any).permissions)) {
+      (profile as any).permissions.forEach((p: string) => permissionsSet.add(p));
+    }
+
     // Validate active division requested in header
     let currentDivision: DivisionInfo | null = null;
     if (activeDivisionId) {

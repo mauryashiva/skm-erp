@@ -44,25 +44,28 @@ const WORK_ITEMS: NavItem[] = [
   },
 ];
 
-// Settings Navigation: display label strictly "Form Access" as requested
+// Settings Navigation: granular permissions mapped to each authoritative form
 const SETTINGS_ITEMS: NavItem[] = [
   {
     title: 'Form Access',
     href: '/settings/form-access',
     icon: Layers,
     matchPrefix: '/settings/form-access',
+    requiredPermission: ['settings.form_access.view', 'settings.form_access.edit', 'roles.manage'],
   },
   {
     title: 'Role & Rights',
     href: '/settings/roles',
     icon: ShieldCheck,
     matchPrefix: '/settings/roles',
+    requiredPermission: ['settings.roles.view', 'roles.manage'],
   },
   {
     title: 'Users',
     href: '/settings/users',
     icon: Users,
     matchPrefix: '/settings/users',
+    requiredPermission: ['settings.users.view', 'users.manage'],
   },
 ];
 
@@ -80,9 +83,18 @@ export function Sidebar() {
   const currentDivision = isMounted ? activeDivision : null;
   const currentIsHoActive = isMounted ? isHoActive : false;
   const isSuperAdmin = Boolean(user?.is_super_admin);
-  const canManageSettings = isMounted && (isSuperAdmin || hasPermission('users.manage') || hasPermission('roles.manage'));
 
   const visibleWorkItems = WORK_ITEMS.filter((item) => {
+    if (!isMounted) return true;
+    if (isSuperAdmin) return true;
+    if (!item.requiredPermission) return true;
+    if (Array.isArray(item.requiredPermission)) {
+      return item.requiredPermission.some((perm) => hasPermission(perm));
+    }
+    return hasPermission(item.requiredPermission);
+  });
+
+  const visibleSettingsItems = SETTINGS_ITEMS.filter((item) => {
     if (!isMounted) return true;
     if (isSuperAdmin) return true;
     if (!item.requiredPermission) return true;
@@ -190,7 +202,7 @@ export function Sidebar() {
           </div>
 
           {/* Settings / Administration Section */}
-          {canManageSettings && (
+          {visibleSettingsItems.length > 0 && (
             <div className="space-y-1 pt-2 border-t border-border/60">
               {!isCollapsed && (
                 <div className="px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80">
@@ -198,7 +210,7 @@ export function Sidebar() {
                 </div>
               )}
 
-              {SETTINGS_ITEMS.map((item) => {
+              {visibleSettingsItems.map((item) => {
                 const isActive = item.matchPrefix
                   ? pathname.startsWith(item.matchPrefix)
                   : pathname === item.href;

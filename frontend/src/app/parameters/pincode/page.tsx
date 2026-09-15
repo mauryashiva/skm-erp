@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { PincodeTable } from '../../../components/parameters/pincode-table';
 import { api } from '../../../lib/api';
 import { useErpContextStore } from '../../../stores/context-store';
+import { useAuthStore } from '../../../stores/auth-store';
 import { useParameterPermissions } from '../../../hooks/use-parameter-permissions';
 import { useRealtimePincodes } from '../../../hooks/use-realtime-pincodes';
 import { PincodeRecord, Division } from '../../../types';
@@ -27,7 +28,12 @@ export default function PincodePage() {
     canEdit,
     canDelete,
     canAssign,
+    canAudit,
   } = useParameterPermissions('pincode');
+
+  const user = useAuthStore((s) => s.user);
+  const hasPermission = useAuthStore((s) => s.hasPermission);
+  const canView = !isMounted || Boolean(user?.is_super_admin) || hasPermission('parameters.pincode.view');
 
   // Load authoritative divisions for HO assignment selection
   React.useEffect(() => {
@@ -70,6 +76,28 @@ export default function PincodePage() {
   });
 
 
+
+  if (isMounted && !canView) {
+    return (
+      <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 min-w-0 space-y-6">
+        <div className="flex flex-col items-center justify-center p-12 bg-card rounded-2xl border border-border/80 text-center space-y-4">
+          <div className="p-3 rounded-full bg-destructive/10 text-destructive">
+            <MapPin className="w-8 h-8 opacity-60" />
+          </div>
+          <h2 className="text-xl font-bold text-foreground">Access Restricted</h2>
+          <p className="text-sm text-muted-foreground max-w-md">
+            You currently do not have authorization to view the Pincode parameter module. Please contact your SKM ERP Administrator for access.
+          </p>
+          <Link
+            href="/parameters"
+            className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+          >
+            Return to Parameters
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 min-w-0 space-y-6">
@@ -122,6 +150,7 @@ export default function PincodePage() {
         canEdit={canEdit}
         canDelete={canDelete}
         canAssign={canAssign}
+        canAudit={canAudit}
         isLoading={isLoading}
         onRefresh={fetchPincodes}
         activeDivisionName={currentDivisionName}

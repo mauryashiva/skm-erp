@@ -12,6 +12,8 @@ import { Division, FinancialYear } from '../../types';
 import { getSharedRealtimeChannel } from '../../hooks/use-realtime-table';
 import { getSupabaseClient } from '../../lib/supabase/client';
 
+import { toast } from 'sonner';
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -31,7 +33,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // Refresh divisions & FYs if empty
+      // Refresh divisions, FYs, and user permissions from authoritative backend
       async function bootstrapContext() {
         try {
           const divs = await api.get<Division[]>('/divisions');
@@ -39,6 +41,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           const fys = await api.get<FinancialYear[]>('/financial-years');
           setAvailableFinancialYears(fys);
+
+          // Synchronize latest permissions and roles
+          const me = await api.get<any>('/auth/me');
+          if (me && me.id) {
+            useAuthStore.getState().updateUser(me);
+          }
         } catch (err) {
           console.warn('Bootstrap context fetch error:', err);
         }
@@ -48,9 +56,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
   }, [isAuthPage, isAuthenticated, router, setAvailableDivisions, setAvailableFinancialYears]);
 
-  // Real-time synchronization of authorized divisions across tabs and user updates
+  // Real-time synchronization of authorized divisions & permissions across tabs & devices
   React.useEffect(() => {
     if (!isAuthenticated || !user?.id) return;
+
+    const refreshPermissions = async (silent = false) => {
+      try {
+        const me = await api.get<any>('/auth/me');
+        if (me && me.id) {
+          useAuthStore.getState().updateUser(me);
+          if (!silent) {
+            toast.info('Access permissions updated in real time.');
+          }
+        }
+      } catch (err) {
+        console.warn('Refresh permissions error:', err);
+      }
+    };
 
     const handleDivisionSync = async (eventDetail?: { userId: string; divisions?: Division[] }) => {
       // Only process if for current user (or no specific user filter)
@@ -72,20 +94,38 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       }
     };
 
-    // 1. In-tab custom window event
-    const onCustomEvent = (e: Event) => {
+    // 1. In-tab custom window events
+    const onCustomDivisionEvent = (e: Event) => {
       const customEvent = e as CustomEvent;
       handleDivisionSync(customEvent.detail);
     };
-    window.addEventListener('skm:divisions-updated', onCustomEvent);
+    const onCustomPermissionsEvent = () => {
+      refreshPermissions(false);
+    };
+    window.addEventListener('skm:divisions-updated', onCustomDivisionEvent);
+    window.addEventListener('skm:permissions-updated', onCustomPermissionsEvent);
 
-    // 2. Cross-tab BroadcastChannel
+    // 2. Cross-tab BroadcastChannels (modern global sync + legacy division sync)
     let channel: BroadcastChannel | null = null;
+    let legacyChannel: BroadcastChannel | null = null;
     try {
-      channel = new BroadcastChannel('skm_erp_division_sync');
+      channel = new BroadcastChannel('skm_erp_global_sync');
       channel.onmessage = (msg) => {
         if (msg.data?.type === 'DIVISIONS_UPDATED') {
           handleDivisionSync(msg.data);
+        }
+        if (msg.data?.type === 'USER_PERMISSIONS_UPDATED') {
+          refreshPermissions(false);
+        }
+      };
+
+      legacyChannel = new BroadcastChannel('skm_erp_division_sync');
+      legacyChannel.onmessage = (msg) => {
+        if (msg.data?.type === 'DIVISIONS_UPDATED') {
+          handleDivisionSync(msg.data);
+        }
+        if (msg.data?.type === 'USER_PERMISSIONS_UPDATED') {
+          refreshPermissions(false);
         }
       };
     } catch {
@@ -101,8 +141,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           handleDivisionSync(data);
         }
       };
+      const onRealtimePermissionsUpdated = () => {
+        refreshPermissions(false);
+      };
 
       globalChannel.on('broadcast', { event: 'DIVISIONS_UPDATED' }, onRealtimeDivisionUpdated);
+      globalChannel.on('broadcast', { event: 'USER_PERMISSIONS_UPDATED' }, onRealtimePermissionsUpdated);
     }
 
     // 4. PostgreSQL CDC subscription on user_divisions for current user
@@ -124,8 +168,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
 
     return () => {
-      window.removeEventListener('skm:divisions-updated', onCustomEvent);
+      window.removeEventListener('skm:divisions-updated', onCustomDivisionEvent);
+      window.removeEventListener('skm:permissions-updated', onCustomPermissionsEvent);
       if (channel) channel.close();
+      if (legacyChannel) legacyChannel.close();
       if (cdcChannel) {
         try {
           const supabase = getSupabaseClient();

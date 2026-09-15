@@ -252,27 +252,29 @@ export class AuthService {
       }
 
       if (normalizedUsername === 'inox_user' && dto.password === 'user123') {
+        const memInox = inMemoryUsersStore.get('inox_user');
         const childDivision: DivisionInfo = {
           id: '22222222-2222-2222-2222-222222222222',
           name: 'SKM Inox',
           code: 'DIV_INOX',
           is_ho: false,
         };
+        const userId = memInox?.id || '99999999-9999-9999-9999-999999999999';
         return {
-          accessToken: 'mock-dev-token',
+          accessToken: `dev-session-${userId}`,
           user: {
-            id: '99999999-9999-9999-9999-999999999999',
+            id: userId,
             username: 'inox_user',
-            full_name: 'SKM Inox Operator',
-            email: 'inox@skmsteels.com',
+            full_name: memInox?.fullName || 'SKM Inox Operator',
+            email: memInox?.email || 'inox@skmsteels.com',
             gender: 'Male',
             mobile_number: '+91 9876543211',
             status: 'APPROVED',
             is_super_admin: false,
             primary_division: childDivision,
-            authorized_divisions: [childDivision],
-            roles: ['Division User'],
-            permissions: ['parameters.pincode.view', 'parameters.account_type.view', 'masters.party.view'],
+            authorized_divisions: memInox?.authorizedDivisions || [childDivision],
+            roles: memInox?.roles?.map((r) => r.name) || ['Division User'],
+            permissions: memInox?.permissions || ['parameters.pincode.view', 'parameters.account_type.view', 'masters.party.view'],
             active_division_id: childDivision.id,
             is_ho_active: false,
           },

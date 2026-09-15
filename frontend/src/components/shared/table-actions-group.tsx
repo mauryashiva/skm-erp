@@ -11,6 +11,7 @@ export interface TableActionsGroupProps {
   canEdit?: boolean;
   canDelete?: boolean;
   canAssign?: boolean;
+  canAudit?: boolean;
   isHoActive?: boolean;
 
   /** Action Handlers */
@@ -37,6 +38,7 @@ export function TableActionsGroup({
   canEdit = true,
   canDelete = true,
   canAssign = true,
+  canAudit = false,
   isHoActive = true,
   onView,
   onEdit,
@@ -57,6 +59,7 @@ export function TableActionsGroup({
   const effectiveCanEdit = canEdit && isHoActive;
   const effectiveCanDelete = canDelete && isHoActive;
   const effectiveCanAssign = canAssign && isHoActive;
+  const effectiveCanAudit = canAudit;
 
   return (
     <div className="flex items-center justify-end gap-1.5 shrink-0">
@@ -84,8 +87,8 @@ export function TableActionsGroup({
         </button>
       )}
 
-      {/* View Audit History */}
-      {onHistory && (
+      {/* View Audit History: Only shown if user has explicit audit permission */}
+      {effectiveCanAudit && onHistory && (
         <button
           type="button"
           onClick={onHistory}
@@ -108,7 +111,7 @@ export function TableActionsGroup({
         </button>
       )}
 
-      {/* Deactivate Record (Soft Delete) */}
+      {/* Deactivate Record (Soft Delete) - controlled by Delete permission */}
       {effectiveCanDelete && isActive && onDeactivate && (
         <button
           type="button"
@@ -120,8 +123,8 @@ export function TableActionsGroup({
         </button>
       )}
 
-      {/* Activate Record */}
-      {effectiveCanEdit && !isActive && onActivate && (
+      {/* Activate Record - unified under Delete permission */}
+      {effectiveCanDelete && !isActive && onActivate && (
         <button
           type="button"
           onClick={onActivate}

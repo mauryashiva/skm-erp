@@ -1,11 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 @Injectable()
-export class SupabaseService {
+export class SupabaseService implements OnModuleInit {
   private readonly logger = new Logger(SupabaseService.name);
   private clientInstance: SupabaseClient;
+  private realtimeChannel: any = null;
 
   constructor(private readonly configService: ConfigService) {
     const url = this.configService.get<string>('supabase.url');
@@ -25,6 +26,25 @@ export class SupabaseService {
         },
       },
     );
+  }
+
+  onModuleInit() {
+    this.ensureRealtimeChannel();
+  }
+
+  private ensureRealtimeChannel() {
+    if (this.realtimeChannel) return this.realtimeChannel;
+    try {
+      this.realtimeChannel = this.clientInstance.channel('skm_erp_global_realtime', {
+        config: { broadcast: { self: true } },
+      });
+      this.realtimeChannel.subscribe((status: string) => {
+        this.logger.log(`Backend global real-time channel status: ${status}`);
+      });
+    } catch (err: any) {
+      this.logger.warn(`Failed to initialize backend realtime channel: ${err.message}`);
+    }
+    return this.realtimeChannel;
   }
 
   getClient(): SupabaseClient {
@@ -52,12 +72,13 @@ export class SupabaseService {
   // Broadcast real-time system event to all connected ERP clients
   async broadcastEvent(event: string, payload: any) {
     try {
-      const channel = this.clientInstance.channel('skm_erp_global_realtime');
-      await channel.send({
+      const channel = this.ensureRealtimeChannel();
+      const res = await channel.send({
         type: 'broadcast',
         event,
         payload,
       });
+      this.logger.log(`Broadcasted [${event}] across ERP network with status: ${res}`);
     } catch (err: any) {
       this.logger.debug(`Supabase broadcastEvent error: ${err.message}`);
     }

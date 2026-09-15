@@ -59,7 +59,7 @@ export class PincodeController {
 
   @Post(':id/activate')
   @UseGuards(HoOnlyGuard)
-  @RequirePermissions('parameters.pincode.edit')
+  @RequirePermissions('parameters.pincode.delete')
   async activatePincode(
     @Param('id') id: string,
     @CurrentUser() user: AuthUser,
